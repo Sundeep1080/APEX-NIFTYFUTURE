@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIFTY FUTURES ENGINE · Signal Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{
+  --bg:#0a0c12;--bg2:#0f1220;--bg3:#151929;--bg4:#1c2035;
+  --border:#1e2438;--border2:#2a3050;
+  --text:#b8c0dc;--text2:#6b7599;--text3:#343d60;--bright:#e8ecff;
+  --green:#00d4aa;--green-g:rgba(0,212,170,.09);
+  --red:#ff4060;--red-g:rgba(255,64,96,.09);
+  --amber:#f5a623;--amber-g:rgba(245,166,35,.09);
+  --blue:#4d7cfe;--blue-g:rgba(77,124,254,.09);
+  --purple:#9b59ff;--purple-g:rgba(155,89,255,.09);
+  --teal:#0dd4bf;--teal-g:rgba(13,212,191,.09);
+  --mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(77,124,254,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(77,124,254,.025) 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;z-index:0}
+.shell{max-width:1920px;margin:0 auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;position:relative;z-index:1}
+
+/* ── Header ── */
+.masthead{background:var(--bg2);border:1px solid var(--border2);border-top:3px solid var(--amber);border-radius:10px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--amber),#ff6b00);border-radius:8px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:9px;color:#000;letter-spacing:0;flex-shrink:0}
+.brand h1{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--bright);letter-spacing:2px}
+.brand p{font-size:8px;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:1px;font-family:var(--mono)}
+.pills{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.pill{padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border:1px solid transparent}
+.p-amber{background:var(--amber-g);color:var(--amber);border-color:rgba(245,166,35,.25)}
+.p-green{background:var(--green-g);color:var(--green);border-color:rgba(0,212,170,.25)}
+.p-red{background:var(--red-g);color:var(--red);border-color:rgba(255,64,96,.25)}
+.p-blue{background:var(--blue-g);color:var(--blue);border-color:rgba(77,124,254,.25)}
+.p-purple{background:var(--purple-g);color:var(--purple);border-color:rgba(155,89,255,.25)}
+.p-dim{background:var(--bg3);color:var(--text2);border-color:var(--border)}
+
+/* ── Upload ── */
+.upload-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:8px;padding:10px 18px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:.2s;background:var(--amber-g)}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--amber);background:rgba(245,166,35,.07)}
+.drop-zone span{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--amber)}
+.drop-zone i{font-size:18px;color:var(--amber)}
+.status-line{font-family:var(--mono);font-size:9px;color:var(--text2);flex:1;min-width:180px}
+.prog-wrap{width:100%;height:3px;background:var(--bg3);border-radius:2px;margin-top:3px;overflow:hidden}
+.prog-bar{height:3px;background:var(--amber);width:0%;transition:width .3s;border-radius:2px}
+.csv-hint{font-family:var(--mono);font-size:8px;color:var(--text3);padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;line-height:1.6}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tab{flex:1;padding:10px 6px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;color:var(--text2);transition:.15s;text-align:center;background:transparent;border:none;border-bottom:2px solid transparent}
+.tab:hover{color:var(--text);background:var(--bg3)}
+.tab.active{color:var(--amber);background:var(--amber-g);border-bottom:2px solid var(--amber)}
+.tab-page{display:none}.tab-page.active{display:block}
+
+/* ── Summary cards ── */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.sum-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.sum-label{font-family:var(--mono);font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sum-val{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--bright)}
+.sum-sub{font-family:var(--mono);font-size:8px;color:var(--text2);margin-top:2px}
+
+/* ── Signal table ── */
+.sig-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:9px}
+.sig-table th{background:var(--bg3);color:var(--text2);padding:5px 8px;text-align:left;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+.sig-table th:hover{color:var(--amber)}
+.sig-table td{padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+.sig-table tr:hover td{background:var(--bg3)}
+.sig-b{color:var(--green);font-weight:700}.sig-s{color:var(--red);font-weight:700}.sig-w{color:var(--text3)}
+.badge{padding:2px 6px;border-radius:3px;font-size:8px;font-weight:700;border:1px solid transparent}
+.b-buy{background:var(--green-g);color:var(--green);border-color:rgba(0,212,170,.3)}
+.b-sell{background:var(--red-g);color:var(--red);border-color:rgba(255,64,96,.3)}
+.b-wait{background:var(--bg3);color:var(--text3);border-color:var(--border)}
+.b-win{background:var(--green-g);color:var(--green);border-color:rgba(0,212,170,.25)}
+.b-loss{background:var(--red-g);color:var(--red);border-color:rgba(255,64,96,.25)}
+.b-open{background:var(--blue-g);color:var(--blue);border-color:rgba(77,124,254,.25)}
+
+/* ── Chart containers ── */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.chart-hdr{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg3)}
+.chart-title{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--bright)}
+#mainChartDiv{height:480px;position:relative}
+#smiChartDiv{height:110px;position:relative;border-top:1px solid var(--border)}
+#volChartDiv{height:80px;position:relative;border-top:1px solid var(--border)}
+.chart-legend{display:flex;gap:10px;flex-wrap:wrap;padding:4px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.leg-item{font-family:var(--mono);font-size:8px;display:flex;align-items:center;gap:4px}
+.leg-dot{width:8px;height:3px;border-radius:2px}
+
+/* ── Cards ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.card-title{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+
+/* ── Stat rows ── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-key{font-family:var(--mono);font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.stat-val{font-family:var(--mono);font-size:10px;font-weight:700}
+.v-green{color:var(--green)}.v-red{color:var(--red)}.v-amber{color:var(--amber)}.v-blue{color:var(--blue)}.v-dim{color:var(--text2)}
+
+/* ── Backtesting table ── */
+.bt-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:9px}
+.bt-table th{background:var(--bg3);color:var(--text2);padding:5px 8px;text-align:left;font-weight:700;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+.bt-table td{padding:4px 8px;border-bottom:1px solid var(--border);color:var(--text)}
+.bt-table tr:hover td{background:var(--bg3)}
+
+/* ── Regime bar ── */
+.reg-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:3px}
+.reg-fill{height:100%;border-radius:3px;transition:width .5s}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── Toast ── */
+#tc{position:fixed;top:14px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:5px}
+.toast{padding:7px 13px;border-radius:6px;font-family:var(--mono);font-size:9px;font-weight:700;border:1px solid transparent;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+.t-ok{background:var(--green-g);color:var(--green);border-color:rgba(0,212,170,.3)}
+.t-err{background:var(--red-g);color:var(--red);border-color:rgba(255,64,96,.3)}
+.t-info{background:var(--amber-g);color:var(--amber);border-color:rgba(245,166,35,.3)}
+
+/* ── Confluence checklist ── */
+.conf-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.conf-row:last-child{border-bottom:none}
+.conf-icon{width:16px;height:16px;border-radius:3px;display:grid;place-items:center;font-size:9px;flex-shrink:0;margin-top:1px}
+.ci-pass{background:var(--green-g);color:var(--green);border:1px solid rgba(0,212,170,.3)}
+.ci-fail{background:var(--red-g);color:var(--red);border:1px solid rgba(255,64,96,.3)}
+.ci-warn{background:var(--amber-g);color:var(--amber);border:1px solid rgba(245,166,35,.3)}
+.ci-na{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.conf-name{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--bright)}
+.conf-detail{font-family:var(--mono);font-size:8px;color:var(--text2);margin-top:1px;line-height:1.5}
+
+/* ── Signal detail popup ── */
+#sigDetail{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#sigDetail.open{display:flex}
+.sd-box{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:20px 24px;width:520px;max-width:96vw;max-height:90vh;overflow-y:auto}
+
+/* ── Empty state ── */
+.empty{text-align:center;color:var(--text3);font-family:var(--mono);font-size:10px;padding:32px;line-height:2}
+
+/* ── Responsive ── */
+@media(max-width:800px){.two-col,.three-col{grid-template-columns:1fr}.summary-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="tc"></div>
+
+<!-- SIGNAL DETAIL MODAL -->
+<div id="sigDetail">
+  <div class="sd-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--bright)" id="sdTitle">—</div>
+      <button onclick="closeSigDetail()" style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:9px">✕ Close</button>
+    </div>
+    <div id="sdBody"></div>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- HEADER -->
+<div class="masthead">
+  <div class="brand">
+    <div class="brand-icon">NFE</div>
+    <div>
+      <h1>NIFTY FUTURES ENGINE</h1>
+      <p>HMA · SMI · Volume Profile · Backtest · Entry/Exit Intelligence</p>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill p-amber" id="pRows">0 BARS</span>
+    <span class="pill p-dim" id="pRegime">—</span>
+    <span class="pill p-green" id="pSig" style="display:none">—</span>
+    <span class="pill p-blue" id="pConf" style="display:none">—</span>
+    <span class="pill p-dim" id="pDate">—</span>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="upload-panel">
+  <div class="drop-zone" id="dropZone"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event)"
+    onclick="document.getElementById('fi').click()">
+    <i>📂</i>
+    <span>Drop Nifty CSV or click to upload</span>
+  </div>
+  <input type="file" id="fi" accept=".csv" style="display:none" onchange="handleFile(this)">
+  <div style="flex:1">
+    <div class="status-line" id="statusLine">Ready — upload your Nifty 50 daily OHLCV CSV (1000 days recommended)</div>
+    <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+  </div>
+  <div class="csv-hint">
+    CSV format: <b>date,open,high,low,close,volume</b><br>
+    Date: YYYY-MM-DD · Any delimiter · Header row required
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('chart')">📈 Chart + Signals</button>
+  <button class="tab" onclick="switchTab('signals')">🎯 Signal Table</button>
+  <button class="tab" onclick="switchTab('backtest')">🔬 Backtest</button>
+  <button class="tab" onclick="switchTab('confluence')">✅ Confluence</button>
+  <button class="tab" onclick="switchTab('regime')">🌐 Regime</button>
+  <button class="tab" onclick="switchTab('stats')">📊 Statistics</button>
+</div>
+
+<!-- ══ TAB: CHART ══ -->
+<div class="tab-page active" id="tab-chart">
+  <div class="chart-wrap">
+    <div class="chart-hdr">
+      <span class="chart-title">NIFTY 50 · Daily · HMA9/10 + SMI + Volume Profile</span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <select id="selTF" onchange="rebuildChart()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:3px 7px;font-family:var(--mono);font-size:9px;cursor:pointer">
+          <option value="1">Daily</option>
+          <option value="5">5-Day</option>
+          <option value="W">Weekly</option>
+        </select>
+        <select id="selLook" onchange="rebuildChart()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:3px 7px;font-family:var(--mono);font-size:9px;cursor:pointer">
+          <option value="250">250 bars</option>
+          <option value="500">500 bars</option>
+          <option value="1000" selected>All bars</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="showSig" checked onchange="rebuildChart()"> Show Signals
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="showVP" checked onchange="rebuildChart()"> Volume Profile
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--text2);cursor:pointer">
+          <input type="checkbox" id="showST" onchange="rebuildChart()"> Supertrend
+        </label>
+      </span>
+    </div>
+    <div class="chart-legend">
+      <span class="leg-item"><span class="leg-dot" style="background:#2962ff"></span> HMA 9</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#ff1744"></span> HMA 10</span>
+      <span class="leg-item"><span class="leg-dot" style="background:var(--amber);border-style:dashed"></span> VWAP</span>
+      <span class="leg-item"><span class="leg-dot" style="background:var(--purple)"></span> Supertrend</span>
+      <span class="leg-item" style="color:var(--green)">▲ Buy Signal</span>
+      <span class="leg-item" style="color:var(--red)">▼ Sell Signal</span>
+      <span class="leg-item" style="color:var(--teal)">━ POC</span>
+      <span class="leg-item" style="color:#888">━ VAH/VAL</span>
+    </div>
+    <div id="mainChartDiv"></div>
+    <div id="smiChartDiv"><span style="position:absolute;top:3px;left:6px;font-family:var(--mono);font-size:8px;color:var(--amber);z-index:2">SMI(10,3,3)</span></div>
+    <div id="volChartDiv"><span style="position:absolute;top:3px;left:6px;font-family:var(--mono);font-size:8px;color:var(--text3);z-index:2">VOLUME</span></div>
+  </div>
+  <!-- Latest signal box -->
+  <div class="two-col" style="margin-top:6px">
+    <div class="card" id="latestSigCard">
+      <div class="card-title">🎯 Latest Signal · Current Bar</div>
+      <div class="empty">Load data to see current signal</div>
+    </div>
+    <div class="card" id="vpCard">
+      <div class="card-title">📊 Volume Profile · Key Levels</div>
+      <div class="empty">Load data to see VP levels</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: SIGNAL TABLE ══ -->
+<div class="tab-page" id="tab-signals">
+  <div class="card" style="margin-bottom:6px">
+    <div class="card-title">All Signals · HMA+SMI SALT Detection · Last 1000 Bars</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <select id="sigFilter" onchange="renderSignalTable()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:9px">
+        <option value="all">All Signals</option>
+        <option value="buy">Buy Only</option>
+        <option value="sell">Sell Only</option>
+        <option value="B1-OS">B1-OS</option>
+        <option value="B2">B2</option>
+        <option value="S1-OB">S1-OB</option>
+        <option value="S2">S2</option>
+      </select>
+      <select id="scoreFilter" onchange="renderSignalTable()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:9px">
+        <option value="0">Min Score: 0</option>
+        <option value="40">Min Score: 40</option>
+        <option value="55" selected>Min Score: 55</option>
+        <option value="65">Min Score: 65</option>
+        <option value="75">Min Score: 75</option>
+      </select>
+      <span id="sigCount" style="font-family:var(--mono);font-size:9px;color:var(--text2);padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px">0 signals</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="sig-table">
+        <thead><tr>
+          <th onclick="sortSigs('date')">Date</th>
+          <th onclick="sortSigs('signal')">Signal</th>
+          <th onclick="sortSigs('score')">Score ▼</th>
+          <th onclick="sortSigs('cmp')">Entry</th>
+          <th onclick="sortSigs('tp')">Target</th>
+          <th onclick="sortSigs('sl')">Stop</th>
+          <th onclick="sortSigs('rr')">R:R</th>
+          <th onclick="sortSigs('atr')">ATR</th>
+          <th>Zone</th>
+          <th onclick="sortSigs('smi')">SMI</th>
+          <th onclick="sortSigs('outcome')">Outcome</th>
+          <th>Action</th>
+        </tr></thead>
+        <tbody id="sigTableBody"><tr><td colspan="12" class="empty">Load data first</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: BACKTEST ══ -->
+<div class="tab-page" id="tab-backtest">
+  <div class="two-col" style="margin-bottom:6px">
+    <div class="card">
+      <div class="card-title">⚙ Backtest Settings</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-bottom:3px">TP Multiplier (ATR)</div>
+          <input id="btTP" type="number" value="2.5" step="0.1" min="1" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--bright);padding:5px 9px;font-family:var(--mono);font-size:10px;width:100%;outline:none">
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-bottom:3px">SL Multiplier (ATR)</div>
+          <input id="btSL" type="number" value="1.5" step="0.1" min="0.5" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--bright);padding:5px 9px;font-family:var(--mono);font-size:10px;width:100%;outline:none">
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-bottom:3px">Min Score Filter</div>
+          <input id="btMinScore" type="number" value="40" step="5" min="0" max="100" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--bright);padding:5px 9px;font-family:var(--mono);font-size:10px;width:100%;outline:none">
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-bottom:3px">Signal Filter</div>
+          <select id="btSigFilter" style="background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--bright);padding:5px 9px;font-family:var(--mono);font-size:9px;width:100%;outline:none">
+            <option value="all">All Signals</option>
+            <option value="buy">Buy Only</option>
+            <option value="sell">Sell Only</option>
+            <option value="B1-OS">B1-OS Only</option>
+            <option value="B2">B2 Only</option>
+            <option value="S1-OB">S1-OB Only</option>
+            <option value="S2">S2 Only</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="runBacktest()" style="background:var(--amber);color:#000;border:none;border-radius:6px;padding:8px 18px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;width:100%">▶ RUN BACKTEST</button>
+    </div>
+    <div class="card" id="btSummary">
+      <div class="card-title">📈 Backtest Summary</div>
+      <div class="empty">Run backtest to see results</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Backtest Trade Log</div>
+    <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+      <table class="bt-table">
+        <thead><tr>
+          <th>Entry Date</th><th>Exit Date</th><th>Signal</th><th>Entry</th>
+          <th>Target</th><th>Stop</th><th>Exit</th><th>PnL pts</th>
+          <th>PnL %</th><th>Bars</th><th>Score</th><th>Result</th>
+        </tr></thead>
+        <tbody id="btTableBody"><tr><td colspan="12" class="empty">Run backtest first</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: CONFLUENCE ══ -->
+<div class="tab-page" id="tab-confluence">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">✅ 5-Tier Confluence Check · Current Bar</div>
+      <div id="confChecks"><div class="empty">Load data to see confluence analysis</div></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-family:var(--mono);font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Overall Confluence</span>
+          <span id="confScoreVal" style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text3)">—</span>
+        </div>
+        <div class="reg-track"><div class="reg-fill" id="confFill" style="width:0%;background:var(--blue)"></div></div>
+        <div id="confVerdict" style="font-family:var(--mono);font-size:9px;color:var(--text2);margin-top:6px;text-align:center">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📐 Breakdown · All Layers</div>
+      <div id="confBars"><div class="empty">Load data to see breakdown</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:6px">
+    <div class="card-title">💡 Trade Recommendation · Based on Confluence</div>
+    <div id="tradeRec"><div class="empty">Load data to see recommendation</div></div>
+  </div>
+</div>
+
+<!-- ══ TAB: REGIME ══ -->
+<div class="tab-page" id="tab-regime">
+  <div class="three-col">
+    <div class="card">
+      <div class="card-title">🌐 Market Regime</div>
+      <div id="regimeCard"><div class="empty">Load data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📉 Volatility Analysis</div>
+      <div id="volCard"><div class="empty">Load data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📆 Seasonal Patterns</div>
+      <div id="seasonCard"><div class="empty">Load data</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:6px">
+    <div class="card-title">🔄 Regime Transitions · HMA9/10 Crossovers</div>
+    <div style="overflow-x:auto;max-height:300px">
+      <table class="sig-table" id="regimeTable">
+        <thead><tr><th>Date</th><th>Type</th><th>Price</th><th>Days After</th><th>Subsequent Move</th></tr></thead>
+        <tbody id="regimeBody"><tr><td colspan="5" class="empty">Load data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: STATS ══ -->
+<div class="tab-page" id="tab-stats">
+  <div class="summary-grid" id="statsGrid">
+    <div class="sum-card"><div class="sum-label">Loading…</div><div class="sum-val">—</div></div>
+  </div>
+  <div class="two-col" style="margin-top:6px">
+    <div class="card">
+      <div class="card-title">🏆 Signal Performance by Type</div>
+      <div id="sigPerf"><div class="empty">Load data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Monthly Return Heatmap</div>
+      <div id="monthlyHeat" style="overflow-x:auto"><div class="empty">Load data</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:6px">
+    <div class="card-title">📈 Equity Curve · Hypothetical (HMA+SMI Signals)</div>
+    <div id="equityCurveDiv" style="height:200px;position:relative"><div class="empty">Load data and run backtest</div></div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let rows = [];          // [{date,op,hi,lo,cl,vol}]
+let allSignals = [];    // computed signals
+let btResults = [];     // backtest trades
+let mainChart = null, smiChart = null, volChart = null;
+let equityChart = null;
+let _mainSeries = null;
+let sigSortCol = 'score', sigSortDir = -1;
+
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const tc = document.getElementById('tc');
+  const el = document.createElement('div');
+  el.className = `toast t-${type}`;
+  el.textContent = msg;
+  tc.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function setProgress(pct, msg) {
+  document.getElementById('prog').style.width = pct + '%';
+  if (msg) document.getElementById('statusLine').textContent = msg;
+}
+function fmt(n, d=2) { return n !== null && n !== undefined && !isNaN(n) ? n.toFixed(d) : '—'; }
+function fmtPts(n) { return n >= 0 ? '+' + n.toFixed(1) : n.toFixed(1); }
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const ids = ['chart','signals','backtest','confluence','regime','stats'];
+    t.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'stats' && rows.length) renderStats();
+  if (id === 'regime' && rows.length) renderRegime();
+  if (id === 'confluence' && rows.length) renderConfluence();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CSV PARSING — handles multiple formats
+// ═══════════════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  // detect delimiter
+  const firstLine = lines[0];
+  const delim = firstLine.includes(',') ? ',' : firstLine.includes('\t') ? '\t' : firstLine.includes(';') ? ';' : ',';
+  const hdrs = firstLine.split(delim).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+  const ci = h => {
+    // fuzzy match
+    const idx = hdrs.findIndex(x => x.includes(h));
+    return idx;
+  };
+  const dI = ci('date'), oI = ci('open'), hI = ci('high'), lI = ci('low'), cI = ci('close'), vI = ci('vol');
+  if (dI < 0 || cI < 0) return [];
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const p = lines[i].split(delim).map(x => x.trim().replace(/['"]/g,''));
+    if (p.length < 4) continue;
+    let dt = p[dI] || '';
+    // normalize date
+    dt = dt.replace(/\//g, '-');
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dt)) { const [d,m,y] = dt.split('-'); dt = `${y}-${m}-${d}`; }
+    if (/^\d{1,2}-[A-Za-z]{3}-\d{2,4}$/.test(dt)) {
+      const months = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+      const [d,m,y] = dt.split('-');
+      const yr = y.length===2 ? '20'+y : y;
+      dt = `${yr}-${months[m.toLowerCase()]||'01'}-${d.padStart(2,'0')}`;
+    }
+    const op = parseFloat(p[oI]) || 0;
+    const hi = parseFloat(p[hI]) || 0;
+    const lo = parseFloat(p[lI]) || 0;
+    const cl = parseFloat(p[cI]);
+    const vol = vI >= 0 ? (parseFloat(p[vI]) || 0) : 0;
+    if (isNaN(cl) || cl <= 0) continue;
+    out.push({ date: dt, op: op||cl, hi: hi||cl, lo: lo||cl, cl, vol });
+  }
+  out.sort((a, b) => a.date.localeCompare(b.date));
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) processFile(f);
+}
+function handleFile(inp) {
+  if (inp.files[0]) processFile(inp.files[0]);
+}
+async function processFile(file) {
+  setProgress(5, 'Reading file…');
+  const text = await file.text();
+  setProgress(20, 'Parsing CSV…');
+  await sleep(10);
+  const parsed = parseCSV(text);
+  if (!parsed.length) { toast('Could not parse CSV. Check format.', 'err'); setProgress(0,'Error'); return; }
+  rows = parsed;
+  setProgress(50, `Parsed ${rows.length} bars · Computing indicators…`);
+  await sleep(10);
+  computeAllSignals();
+  setProgress(80, 'Building chart…');
+  await sleep(10);
+  rebuildChart();
+  setProgress(95, 'Rendering…');
+  await sleep(10);
+  renderSignalTable();
+  renderLatestSignal();
+  renderVPCard();
+  renderConfluence();
+  updatePills();
+  setProgress(100, `✓ ${rows.length} bars loaded · ${allSignals.length} signals detected`);
+  toast(`${rows.length} bars loaded · ${allSignals.length} signals`, 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MATH / INDICATORS (from TRAM)
+// ═══════════════════════════════════════════════════════════
+function wma(arr, endIdx, period) {
+  if (endIdx < period - 1) return null;
+  let num = 0, denom = 0;
+  for (let k = 0; k < period; k++) { const w = period - k; num += arr[endIdx - k] * w; denom += w; }
+  return denom ? num / denom : null;
+}
+function emaArr(data, period, startFrom) {
+  startFrom = startFrom || 0;
+  const n = data.length, out = new Array(n).fill(null), k = 2 / (period + 1);
+  let sum = 0, cnt = 0;
+  for (let i = startFrom; i < Math.min(startFrom + period, n); i++) { const v = data[i]; if (v !== null && !isNaN(v)) { sum += v; cnt++; } }
+  if (!cnt) return out;
+  let prev = sum / cnt; out[startFrom + cnt - 1] = prev;
+  for (let i = startFrom + cnt; i < n; i++) { const v = data[i]; prev = (v !== null && !isNaN(v)) ? v * k + prev * (1 - k) : prev; out[i] = prev; }
+  return out;
+}
+function calcHMA(prices, period) {
+  const n = prices.length, half = Math.floor(period / 2), sq = Math.floor(Math.sqrt(period)), res = new Array(n).fill(null);
+  for (let i = period - 1; i < n; i++) {
+    const wf = wma(prices, i, period), wh = wma(prices, i, half);
+    if (wf === null || wh === null) continue;
+    const raw = [];
+    for (let j = sq - 1; j >= 0; j--) {
+      const pi = i - j; if (pi < period - 1) break;
+      const a = wma(prices, pi, period), b = wma(prices, pi, half);
+      if (a === null || b === null) break;
+      raw.push(2 * b - a);
+    }
+    if (raw.length < sq) continue;
+    res[i] = wma(raw, raw.length - 1, sq);
+  }
+  return res;
+}
+function calcSMI(highs, lows, closes) {
+  const kLen = 10, smooth = 3, signal = 3;
+  const n = closes.length, centers = new Array(n).fill(null), hlHalfs = new Array(n).fill(null);
+  for (let i = kLen - 1; i < n; i++) {
+    let hi = -Infinity, lo = Infinity;
+    for (let j = 0; j < kLen; j++) { hi = Math.max(hi, highs[i - j]); lo = Math.min(lo, lows[i - j]); }
+    centers[i] = closes[i] - (hi + lo) / 2; hlHalfs[i] = (hi - lo) / 2;
+  }
+  const cEK = emaArr(centers, smooth, kLen - 1), cEKD = emaArr(cEK, signal, kLen + smooth - 2);
+  const hEK = emaArr(hlHalfs, smooth, kLen - 1), hEKD = emaArr(hEK, signal, kLen + smooth - 2);
+  const smiV = new Array(n).fill(null);
+  for (let i = 0; i < n; i++) { if (cEKD[i] !== null && hEKD[i] !== null && hEKD[i] !== 0) smiV[i] = (cEKD[i] / hEKD[i]) * 100; }
+  const smiS = emaArr(smiV, 3, kLen + smooth + signal - 3);
+  return { smi: smiV, sig: smiS };
+}
+function calcATR(highs, lows, closes, p = 14) {
+  const n = closes.length, atrs = new Array(n).fill(null);
+  for (let i = 1; i < n; i++) {
+    const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i - 1]), Math.abs(lows[i] - closes[i - 1]));
+    atrs[i] = i < p ? tr : (atrs[i - 1] * (p - 1) + tr) / p;
+  }
+  return atrs;
+}
+function calcRSI(closes, period = 14) {
+  const n = closes.length, rsi = new Array(n).fill(null);
+  if (n <= period) return rsi;
+  let g = 0, l = 0;
+  for (let i = 1; i <= period; i++) { const d = closes[i] - closes[i - 1]; if (d > 0) g += d; else l -= d; }
+  let aG = g / period, aL = l / period;
+  rsi[period] = aL === 0 ? 100 : 100 - 100 / (1 + aG / aL);
+  for (let i = period + 1; i < n; i++) { const d = closes[i] - closes[i - 1]; aG = (aG * (period - 1) + (d > 0 ? d : 0)) / period; aL = (aL * (period - 1) + (d < 0 ? -d : 0)) / period; rsi[i] = aL === 0 ? 100 : 100 - 100 / (1 + aG / aL); }
+  return rsi;
+}
+function calcHV(closes, p = 20) {
+  const n = closes.length, hvs = new Array(n).fill(null);
+  for (let i = p; i < n; i++) { let s = 0; for (let j = 1; j <= p; j++) { const lr = Math.log(closes[i - j + 1] / closes[i - j]); s += lr * lr; } hvs[i] = Math.sqrt(s / p * 252) * 100; }
+  return hvs;
+}
+function calcVWAP(rows) {
+  // rolling 20-day VWAP
+  const n = rows.length, vwap = new Array(n).fill(null);
+  for (let i = 1; i < n; i++) {
+    const start = Math.max(0, i - 19);
+    let sumPV = 0, sumV = 0;
+    for (let j = start; j <= i; j++) {
+      const tp = (rows[j].hi + rows[j].lo + rows[j].cl) / 3;
+      const v = rows[j].vol || 1;
+      sumPV += tp * v; sumV += v;
+    }
+    vwap[i] = sumV > 0 ? sumPV / sumV : null;
+  }
+  return vwap;
+}
+function calcSupertrend(highs, lows, closes, atrP = 10, mult = 3) {
+  const n = closes.length, atrs = calcATR(highs, lows, closes, atrP);
+  const trend = new Array(n).fill(1), st = new Array(n).fill(null);
+  const ub = new Array(n).fill(null), lb = new Array(n).fill(null);
+  for (let i = atrP; i < n; i++) {
+    const hl2 = (highs[i] + lows[i]) / 2, atr = atrs[i] || 0;
+    ub[i] = hl2 + mult * atr; lb[i] = hl2 - mult * atr;
+    if (i > atrP) { if (lb[i - 1] !== null) lb[i] = Math.max(lb[i], lb[i - 1]); if (ub[i - 1] !== null) ub[i] = Math.min(ub[i], ub[i - 1]); }
+    if (i > atrP) trend[i] = (st[i - 1] !== null && closes[i - 1] <= st[i - 1]) ? -1 : 1;
+    st[i] = trend[i] === 1 ? lb[i] : ub[i];
+  }
+  return { st, trend };
+}
+
+// Volume Profile
+function calcVolumeProfile(rows, lookback = 250) {
+  const slice = rows.slice(-lookback);
+  if (slice.length < 10) return null;
+  const NB = 20;
+  const hiDyn = Math.max(...slice.map(r => r.hi));
+  const loDyn = Math.min(...slice.map(r => r.lo));
+  const rng = hiDyn - loDyn;
+  if (rng < 1) return null;
+  const bW = rng / NB, bVol = new Array(NB).fill(0);
+  slice.forEach(r => {
+    const tp = (r.hi + r.lo + r.cl) / 3;
+    const vi = Math.min(NB - 1, Math.floor((tp - loDyn) / bW));
+    if (vi >= 0) bVol[vi] += (r.vol || 1);
+  });
+  const maxVol = Math.max(...bVol);
+  const pocIdx = bVol.indexOf(maxVol);
+  const poc = loDyn + (pocIdx + 0.5) * bW;
+  // Value Area = bands containing 70% of volume
+  const totalVol = bVol.reduce((a, b) => a + b, 0);
+  const target = totalVol * 0.70;
+  let included = [pocIdx], cumVol = bVol[pocIdx];
+  let lo = pocIdx, hi = pocIdx;
+  while (cumVol < target && (lo > 0 || hi < NB - 1)) {
+    const addLo = lo > 0 ? bVol[lo - 1] : 0;
+    const addHi = hi < NB - 1 ? bVol[hi + 1] : 0;
+    if (addLo >= addHi && lo > 0) { lo--; cumVol += bVol[lo]; }
+    else if (hi < NB - 1) { hi++; cumVol += bVol[hi]; }
+    else break;
+  }
+  const vah = loDyn + (hi + 1) * bW;
+  const val = loDyn + lo * bW;
+  return { poc, vah, val, hiDyn, loDyn, bW, bVol, NB, loDyn };
+}
+
+// Band zone (from TRAM)
+function calcBandZone(closes, lookback = 250) {
+  const NB = 10, n = closes.length, lb = Math.min(lookback, n);
+  const slice = closes.slice(-lb);
+  const hiDyn = Math.max(...slice), loDyn = Math.min(...slice);
+  const rng = hiDyn - loDyn;
+  if (rng < 1) return 'va';
+  const bW = rng / NB;
+  const bLo = [], bHi = [], bBars = new Array(NB).fill(0);
+  for (let i = 0; i < NB; i++) { bLo.push(loDyn + bW * i); bHi.push(loDyn + bW * (i + 1)); }
+  slice.forEach(c => { for (let i = 0; i < NB; i++) { if (c >= bLo[i] && c <= bHi[i]) { bBars[i]++; break; } } });
+  const ranks = Array.from({length:NB},(_,i)=>i).sort((a,b)=>bBars[b]-bBars[a]);
+  const [r1,r2,r3] = ranks;
+  const vaHiIdx = Math.max(r1,r2,r3), vaLoIdx = Math.min(r1,r2,r3);
+  const vaMTP = (bLo[r1] + bHi[r1]) / 2;
+  const cmp = closes[n - 1];
+  let curBand = 0;
+  for (let i = 0; i < NB; i++) { if (cmp >= bLo[i] && cmp <= bHi[i]) { curBand = i; break; } }
+  let bandZone;
+  if (curBand === NB - 1) bandZone = 'rej_hi';
+  else if (curBand >= vaLoIdx && curBand <= vaHiIdx) bandZone = 'va';
+  else if (curBand > vaHiIdx) bandZone = 'above_va';
+  else if (curBand <= 1) bandZone = 'rej_lo';
+  else bandZone = 'below_va';
+  return { bandZone, vaHi: bHi[vaHiIdx], vaLo: bLo[vaLoIdx], vaMTP, curBandLo: bLo[curBand], curBandHi: bHi[curBand], b1Lo: bLo[0], b10Hi: bHi[NB-1] };
+}
+
+// SALT detection (exact from TRAM)
+function detectSALT(h9arr, h10arr, smiArr, smiSigArr, bandZone) {
+  const n = h9arr.length; if (n < 3) return 'WAIT';
+  const v9 = [], vi = [];
+  for (let i = n - 1; i >= 0 && v9.length < 3; i--) { if (h9arr[i] !== null && !isNaN(h9arr[i])) { v9.unshift(h9arr[i]); vi.unshift(i); } }
+  if (v9.length < 3) return 'WAIT';
+  const [pp9, p9, c9] = v9, [ppI, pI, cI] = vi;
+  const p10 = h10arr[pI], c10 = h10arr[cI];
+  if (p10 === null || c10 === null) return 'WAIT';
+  const cSMI = smiArr[cI] || 0, cSIG = smiSigArr[cI] || 0;
+  const d9 = c9 - p9, pd9 = p9 - pp9, d10 = c10 - p10;
+  const xUp = c9 > c10 && p9 <= (h10arr[pI] ?? c10);
+  const xDn = c9 < c10 && p9 >= (h10arr[pI] ?? c10);
+  const isBuyZone = bandZone === 'rej_lo' || bandZone === 'below_va';
+  const isSellZone = bandZone === 'rej_hi' || bandZone === 'above_va';
+  if (d9 > 0 && pd9 < 0 && cSMI < -20 && cSIG < -20 && isBuyZone) return 'B1-OS';
+  if (d9 > 0 && pd9 < 0 && cSMI > 25 && cSIG > 25 && isBuyZone) return 'B1-MOM';
+  if (xUp && d10 > 0 && cSMI < -20 && cSIG < -20 && !isSellZone) return 'B2';
+  if (d9 > 0 && d10 > 0 && cSMI > -10 && cSIG > -10 && !isSellZone) return 'B3';
+  if (d9 < 0 && pd9 > 0 && cSMI > 20 && cSIG > 20 && isSellZone) return 'S1-OB';
+  if (d9 < 0 && pd9 > 0 && cSMI < -25 && cSIG < -25 && isSellZone) return 'S1-MOM';
+  if (xDn && d10 < 0 && cSMI > 20 && cSIG > 20 && !isBuyZone) return 'S2';
+  if (d9 < 0 && d10 < 0 && cSMI < 10 && cSIG < 10 && !isBuyZone) return 'S3';
+  return 'WAIT';
+}
+
+const PRIOR_WR = {'B1-OS':68,'B1-MOM':60,'B2':65,'B3':48,'S1-OB':67,'S1-MOM':59,'S2':64,'S3':47};
+const SIG_PRIORITY = {'B1-OS':5,'B2':4,'B1-MOM':3,'B3':1,'S1-OB':5,'S2':4,'S1-MOM':3,'S3':1};
+
+function calcScore(sig, bandZone, barsAgo, rsi, adx) {
+  let score = 0;
+  const base = {'B1-OS':28,'B1-MOM':25,'B2':30,'B3':10,'S1-OB':28,'S1-MOM':25,'S2':30,'S3':10};
+  score += base[sig] || 0;
+  const zs = {'rej_lo':25,'rej_hi':25,'below_va':15,'above_va':15,'va':5};
+  score += zs[bandZone] || 0;
+  if (barsAgo === 0) score += 20; else if (barsAgo === 1) score += 12; else if (barsAgo === 2) score += 5;
+  if (adx > 30) score += 15; else if (adx > 20) score += 8; else if (adx < 15) score -= 8;
+  const isBuy = sig.startsWith('B');
+  if (isBuy && rsi < 40) score += 8; else if (!isBuy && rsi > 60) score += 8;
+  return Math.min(100, Math.max(0, score));
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN SIGNAL ENGINE
+// ═══════════════════════════════════════════════════════════
+function computeAllSignals() {
+  allSignals = [];
+  if (rows.length < 30) return;
+  const closes = rows.map(r => r.cl);
+  const highs = rows.map(r => r.hi);
+  const lows = rows.map(r => r.lo);
+  const h9 = calcHMA(closes, 9);
+  const h10 = calcHMA(closes, 10);
+  const { smi, sig: smiSig } = calcSMI(highs, lows, closes);
+  const atrs = calcATR(highs, lows, closes);
+  const rsiArr = calcRSI(closes);
+  // ADX approximation via ATR trend
+  const adxArr = new Array(rows.length).fill(20);
+  // Compute rolling ADX (simplified)
+  for (let i = 14; i < rows.length; i++) {
+    const atr = atrs[i] || 1;
+    const range = rows[i].hi - rows[i].lo;
+    adxArr[i] = Math.min(60, Math.max(5, (range / atr) * 20));
+  }
+  const vwap = calcVWAP(rows);
+  const bdRes = calcBandZone(closes);
+  const vp = calcVolumeProfile(rows);
+
+  for (let i = 20; i < rows.length; i++) {
+    const subH9 = h9.slice(0, i + 1), subH10 = h10.slice(0, i + 1);
+    const subSMI = smi.slice(0, i + 1), subSMISig = smiSig.slice(0, i + 1);
+    if (subH9[i] === null || subH10[i] === null) continue;
+    const bdI = calcBandZone(closes.slice(0, i + 1));
+    if (!bdI) continue;
+    const { bandZone } = bdI;
+    const sig = detectSALT(subH9, subH10, subSMI, subSMISig, bandZone);
+    if (sig === 'WAIT') continue;
+    // Ensure SMI is moving in right direction
+    const smiNow = smi[i] || 0, smiPrev = smi[i - 1] || smiNow;
+    if (sig.startsWith('B') && smiNow <= smiPrev) continue;
+    if (sig.startsWith('S') && smiNow >= smiPrev) continue;
+    const atr = atrs[i] || closes[i] * 0.01;
+    const cmp = closes[i];
+    const isBuy = sig.startsWith('B');
+    const tp = isBuy ? cmp + atr * 2.5 : cmp - atr * 2.5;
+    const sl = isBuy ? cmp - atr * 1.5 : cmp + atr * 1.5;
+    const rr = parseFloat((Math.abs(tp - cmp) / Math.abs(cmp - sl)).toFixed(2));
+    const barsAgo = 0;
+    const rsi = rsiArr[i] || 50;
+    const adx = adxArr[i] || 20;
+    const score = calcScore(sig, bandZone, barsAgo, rsi, adx);
+    allSignals.push({
+      idx: i,
+      date: rows[i].date,
+      signal: sig,
+      score,
+      cmp,
+      tp: parseFloat(tp.toFixed(2)),
+      sl: parseFloat(sl.toFixed(2)),
+      rr,
+      atr: parseFloat(atr.toFixed(2)),
+      bandZone,
+      smi: parseFloat((smi[i] || 0).toFixed(1)),
+      smiSig: parseFloat((smiSig[i] || 0).toFixed(1)),
+      rsi: parseFloat(rsi.toFixed(1)),
+      adx: parseFloat(adx.toFixed(1)),
+      vwap: vwap[i] ? parseFloat(vwap[i].toFixed(2)) : null,
+      outcome: 'open',
+      exitDate: null,
+      exitPrice: null,
+      pnlPts: null,
+      bars: null
+    });
+  }
+  // Resolve outcomes
+  allSignals.forEach(s => {
+    for (let i = s.idx + 1; i < rows.length; i++) {
+      const h = rows[i].hi, l = rows[i].lo, isBull = s.tp > s.cmp;
+      const htTP = isBull ? h >= s.tp : l <= s.tp;
+      const htSL = isBull ? l <= s.sl : h >= s.sl;
+      if (htTP && htSL) { s.outcome = 'loss'; s.exitPrice = s.sl; }
+      else if (htTP) { s.outcome = 'win'; s.exitPrice = s.tp; }
+      else if (htSL) { s.outcome = 'loss'; s.exitPrice = s.sl; }
+      if (s.outcome !== 'open') {
+        s.exitDate = rows[i].date;
+        s.pnlPts = parseFloat((s.exitPrice - s.cmp).toFixed(2));
+        s.bars = i - s.idx;
+        break;
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHART BUILDER
+// ═══════════════════════════════════════════════════════════
+function rebuildChart() {
+  if (!rows.length) return;
+  // Destroy old
+  if (mainChart) { try { mainChart.remove(); } catch(e){} mainChart = null; }
+  if (smiChart) { try { smiChart.remove(); } catch(e){} smiChart = null; }
+  if (volChart) { try { volChart.remove(); } catch(e){} volChart = null; }
+
+  const dark = true;
+  const baseOpt = {
+    layout: { background: { color: '#0f1220' }, textColor: '#6b7599' },
+    grid: { vertLines: { color: '#1e2438' }, horzLines: { color: '#1e2438' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    timeScale: { borderColor: '#2a3050', timeVisible: true }
+  };
+
+  const lookVal = parseInt(document.getElementById('selLook').value) || 1000;
+  const showSig = document.getElementById('showSig').checked;
+  const showVP = document.getElementById('showVP').checked;
+  const showST = document.getElementById('showST').checked;
+  const displayRows = rows.slice(-lookVal);
+
+  const closes = rows.map(r => r.cl);
+  const highs = rows.map(r => r.hi);
+  const lows = rows.map(r => r.lo);
+  const h9Full = calcHMA(closes, 9);
+  const h10Full = calcHMA(closes, 10);
+  const { smi: smiArr, sig: smiSigArr } = calcSMI(highs, lows, closes);
+  const vwapFull = calcVWAP(rows);
+  const stFull = showST ? calcSupertrend(highs, lows, closes) : null;
+
+  // Main chart
+  const mainDiv = document.getElementById('mainChartDiv');
+  mainChart = LightweightCharts.createChart(mainDiv, Object.assign({}, baseOpt, {
+    width: mainDiv.clientWidth || 800,
+    height: mainDiv.clientHeight || 480,
+    rightPriceScale: { borderColor: '#2a3050', scaleMargins: { top: 0.05, bottom: 0.05 } },
+    timeScale: { borderColor: '#2a3050', timeVisible: true }
+  }));
+
+  // Candlestick
+  const candleSeries = mainChart.addCandlestickSeries({
+    upColor: '#00d4aa', downColor: '#ff4060',
+    borderUpColor: '#00d4aa', borderDownColor: '#ff4060',
+    wickUpColor: '#00d4aa', wickDownColor: '#ff4060'
+  });
+  const startIdx = rows.length - lookVal;
+  const candleData = displayRows.map((r, i) => ({
+    time: r.date,
+    open: r.op || r.cl, high: r.hi || r.cl, low: r.lo || r.cl, close: r.cl
+  }));
+  candleSeries.setData(candleData);
+  _mainSeries = candleSeries;
+
+  // HMA 9
+  const h9Series = mainChart.addLineSeries({ color: '#2962ff', lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: 'HMA9' });
+  const h9Data = displayRows.map((r, i) => {
+    const v = h9Full[startIdx + i];
+    return v !== null ? { time: r.date, value: v } : null;
+  }).filter(Boolean);
+  if (h9Data.length) h9Series.setData(h9Data);
+
+  // HMA 10
+  const h10Series = mainChart.addLineSeries({ color: '#ff1744', lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: 'HMA10' });
+  const h10Data = displayRows.map((r, i) => {
+    const v = h10Full[startIdx + i];
+    return v !== null ? { time: r.date, value: v } : null;
+  }).filter(Boolean);
+  if (h10Data.length) h10Series.setData(h10Data);
+
+  // VWAP (dashed)
+  const vwapSeries = mainChart.addLineSeries({ color: '#f5a623', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: true, title: 'VWAP' });
+  const vwapData = displayRows.map((r, i) => {
+    const v = vwapFull[startIdx + i];
+    return v ? { time: r.date, value: v } : null;
+  }).filter(Boolean);
+  if (vwapData.length) vwapSeries.setData(vwapData);
+
+  // Supertrend
+  if (showST && stFull) {
+    const stSeries = mainChart.addLineSeries({ color: '#9b59ff', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, title: 'ST' });
+    const stData = displayRows.map((r, i) => {
+      const v = stFull.st[startIdx + i];
+      return v !== null ? { time: r.date, value: v } : null;
+    }).filter(Boolean);
+    if (stData.length) stSeries.setData(stData);
+  }
+
+  // Volume Profile lines
+  if (showVP) {
+    const vp = calcVolumeProfile(displayRows);
+    if (vp) {
+      candleSeries.createPriceLine({ price: vp.poc, color: '#0dd4bf', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: '📍POC' });
+      candleSeries.createPriceLine({ price: vp.vah, color: '#888888', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: 'VAH' });
+      candleSeries.createPriceLine({ price: vp.val, color: '#888888', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: 'VAL' });
+    }
+  }
+
+  // Signals as markers
+  if (showSig && allSignals.length) {
+    const markers = allSignals
+      .filter(s => s.idx >= startIdx)
+      .map(s => ({
+        time: s.date,
+        position: s.signal.startsWith('B') ? 'belowBar' : 'aboveBar',
+        color: s.signal.startsWith('B') ? '#00d4aa' : '#ff4060',
+        shape: s.signal.startsWith('B') ? 'arrowUp' : 'arrowDown',
+        text: s.signal + ' ' + s.score
+      }));
+    if (markers.length) candleSeries.setMarkers(markers);
+  }
+
+  // SMI sub-chart
+  const smiDiv = document.getElementById('smiChartDiv');
+  smiChart = LightweightCharts.createChart(smiDiv, Object.assign({}, baseOpt, {
+    width: smiDiv.clientWidth || 800,
+    height: 110,
+    rightPriceScale: { borderColor: '#2a3050', scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: '#2a3050', visible: false }
+  }));
+  const zeroLine = smiChart.addLineSeries({ color: '#2a3050', lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+  zeroLine.setData(displayRows.map(r => ({ time: r.date, value: 0 })));
+  [40, -40].forEach(lvl => {
+    const ls = smiChart.addLineSeries({ color: lvl > 0 ? 'rgba(255,64,96,.3)' : 'rgba(0,212,170,.3)', lineWidth: 1, lineStyle: 1, priceLineVisible: false, lastValueVisible: false });
+    ls.setData(displayRows.map(r => ({ time: r.date, value: lvl })));
+  });
+  const smiLine = smiChart.addLineSeries({ color: '#2962ff', lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: 'SMI' });
+  const sigLine = smiChart.addLineSeries({ color: '#ff1744', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true, title: 'Sig' });
+  const smiData = displayRows.map((r, i) => { const v = smiArr[startIdx + i]; return v !== null ? { time: r.date, value: v } : null; }).filter(Boolean);
+  const sigData = displayRows.map((r, i) => { const v = smiSigArr[startIdx + i]; return v !== null ? { time: r.date, value: v } : null; }).filter(Boolean);
+  if (smiData.length) smiLine.setData(smiData);
+  if (sigData.length) sigLine.setData(sigData);
+
+  // Volume chart
+  const volDiv = document.getElementById('volChartDiv');
+  volChart = LightweightCharts.createChart(volDiv, Object.assign({}, baseOpt, {
+    width: volDiv.clientWidth || 800,
+    height: 80,
+    rightPriceScale: { borderColor: '#2a3050', scaleMargins: { top: 0.1, bottom: 0 } },
+    timeScale: { borderColor: '#2a3050', visible: false }
+  }));
+  const volSeries = volChart.addHistogramSeries({ color: '#2a3050', priceFormat: { type: 'volume' }, priceScaleId: '' });
+  const volData = displayRows.map(r => ({
+    time: r.date,
+    value: r.vol || 0,
+    color: r.cl >= r.op ? 'rgba(0,212,170,.4)' : 'rgba(255,64,96,.4)'
+  }));
+  if (volData.some(d => d.value > 0)) volSeries.setData(volData);
+
+  // Sync crosshair
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r => {
+    if (r && smiChart) smiChart.timeScale().setVisibleLogicalRange(r);
+    if (r && volChart) volChart.timeScale().setVisibleLogicalRange(r);
+  });
+
+  // Resize observer
+  const ro = new ResizeObserver(() => {
+    if (mainChart) mainChart.applyOptions({ width: mainDiv.clientWidth });
+    if (smiChart) smiChart.applyOptions({ width: smiDiv.clientWidth });
+    if (volChart) volChart.applyOptions({ width: volDiv.clientWidth });
+  });
+  ro.observe(mainDiv.parentElement);
+
+  mainChart.timeScale().fitContent();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNAL TABLE
+// ═══════════════════════════════════════════════════════════
+function sortSigs(col) {
+  if (sigSortCol === col) sigSortDir *= -1;
+  else { sigSortCol = col; sigSortDir = -1; }
+  renderSignalTable();
+}
+function renderSignalTable() {
+  const filter = document.getElementById('sigFilter').value;
+  const minScore = parseInt(document.getElementById('scoreFilter').value) || 0;
+  let sigs = allSignals.filter(s => {
+    if (filter === 'buy' && !s.signal.startsWith('B')) return false;
+    if (filter === 'sell' && !s.signal.startsWith('S')) return false;
+    if (filter !== 'all' && filter !== 'buy' && filter !== 'sell' && s.signal !== filter) return false;
+    if (s.score < minScore) return false;
+    return true;
+  });
+  sigs = [...sigs].sort((a, b) => {
+    const map = { date:'date', signal:'signal', score:'score', cmp:'cmp', tp:'tp', sl:'sl', rr:'rr', atr:'atr', smi:'smi', outcome:'outcome' };
+    const key = map[sigSortCol] || 'score';
+    const av = a[key], bv = b[key];
+    if (typeof av === 'string') return av.localeCompare(bv) * sigSortDir;
+    return ((av || 0) - (bv || 0)) * sigSortDir;
+  });
+  document.getElementById('sigCount').textContent = sigs.length + ' signals';
+  const tbody = document.getElementById('sigTableBody');
+  if (!sigs.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No signals match filters</td></tr>'; return; }
+  tbody.innerHTML = sigs.map(s => {
+    const isBuy = s.signal.startsWith('B');
+    const outcomeClass = s.outcome === 'win' ? 'b-win' : s.outcome === 'loss' ? 'b-loss' : 'b-open';
+    const pnlStr = s.pnlPts !== null ? (s.pnlPts >= 0 ? '+' : '') + s.pnlPts.toFixed(1) : '—';
+    const pnlColor = s.pnlPts > 0 ? 'v-green' : s.pnlPts < 0 ? 'v-red' : 'v-dim';
+    return `<tr onclick="showSigDetail(${s.idx})" style="cursor:pointer">
+      <td>${s.date}</td>
+      <td><span class="badge ${isBuy?'b-buy':'b-sell'}">${s.signal}</span></td>
+      <td style="color:${s.score>=65?'var(--green)':s.score>=45?'var(--amber)':'var(--red)'};font-weight:700">${s.score}</td>
+      <td>${s.cmp.toFixed(2)}</td>
+      <td class="v-green">${s.tp.toFixed(2)}</td>
+      <td class="v-red">${s.sl.toFixed(2)}</td>
+      <td class="v-amber">${s.rr}</td>
+      <td>${s.atr.toFixed(1)}</td>
+      <td style="font-size:8px;color:var(--text2)">${s.bandZone.replace(/_/g,' ')}</td>
+      <td style="color:${s.smi<-40?'var(--green)':s.smi>40?'var(--red)':'var(--text2)'}">${s.smi}</td>
+      <td><span class="badge ${outcomeClass}">${s.outcome.toUpperCase()}</span><span class="${pnlColor}" style="margin-left:5px">${pnlStr}</span></td>
+      <td><button onclick="event.stopPropagation();showSigDetail(${s.idx})" style="background:var(--blue-g);border:1px solid rgba(77,124,254,.3);color:var(--blue);border-radius:3px;padding:2px 6px;font-family:var(--mono);font-size:8px;cursor:pointer">Detail</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showSigDetail(idx) {
+  const s = allSignals.find(x => x.idx === idx);
+  if (!s) return;
+  const isBuy = s.signal.startsWith('B');
+  document.getElementById('sdTitle').textContent = `${s.signal} · ${s.date} · Score ${s.score}`;
+  const vpLevels = calcVolumeProfile(rows.slice(0, idx + 1));
+  const vwapVal = calcVWAP(rows)[idx];
+  const confScore = computeConfluenceScore(s, vwapVal, vpLevels);
+  document.getElementById('sdBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${isBuy?'var(--green)':'var(--red)'}">${s.signal}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--text2)">SIGNAL</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${s.score>=65?'var(--green)':s.score>=45?'var(--amber)':'var(--red)'}">${s.score}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--text2)">SCORE</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--blue)">${confScore}%</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--text2)">CONFLUENCE</div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;font-family:var(--mono)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="stat-row"><span class="stat-key">Entry</span><span class="stat-val v-amber">${s.cmp.toFixed(2)}</span></div>
+        <div class="stat-row"><span class="stat-key">Target</span><span class="stat-val v-green">${s.tp.toFixed(2)} (+${Math.abs(s.tp-s.cmp).toFixed(1)}pts)</span></div>
+        <div class="stat-row"><span class="stat-key">Stop Loss</span><span class="stat-val v-red">${s.sl.toFixed(2)} (-${Math.abs(s.sl-s.cmp).toFixed(1)}pts)</span></div>
+        <div class="stat-row"><span class="stat-key">R:R Ratio</span><span class="stat-val v-blue">${s.rr}:1</span></div>
+        <div class="stat-row"><span class="stat-key">ATR</span><span class="stat-val">${s.atr.toFixed(1)} pts</span></div>
+        <div class="stat-row"><span class="stat-key">Outcome</span><span class="stat-val ${s.outcome==='win'?'v-green':s.outcome==='loss'?'v-red':'v-dim'}">${s.outcome.toUpperCase()} ${s.pnlPts?fmtPts(s.pnlPts)+' pts':''}</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:var(--mono)">
+      <div class="stat-row"><span class="stat-key">SMI</span><span class="stat-val" style="color:${s.smi<-40?'var(--green)':s.smi>40?'var(--red)':'var(--text2)'}">${s.smi} (Sig: ${s.smiSig})</span></div>
+      <div class="stat-row"><span class="stat-key">RSI</span><span class="stat-val" style="color:${s.rsi<40?'var(--green)':s.rsi>60?'var(--red)':'var(--text2)'}">${s.rsi}</span></div>
+      <div class="stat-row"><span class="stat-key">Band Zone</span><span class="stat-val v-amber">${s.bandZone.replace(/_/g,' ').toUpperCase()}</span></div>
+      <div class="stat-row"><span class="stat-key">VWAP</span><span class="stat-val" style="color:${vwapVal?s.cmp>vwapVal?'var(--green)':'var(--red)':'var(--text2)'}">${vwapVal?vwapVal.toFixed(2)+' ('+(s.cmp>vwapVal?'Above':'Below')+')':'—'}</span></div>
+      ${vpLevels?`<div class="stat-row"><span class="stat-key">POC</span><span class="stat-val v-teal" style="color:var(--teal)">${vpLevels.poc.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">VAH / VAL</span><span class="stat-val v-dim">${vpLevels.vah.toFixed(2)} / ${vpLevels.val.toFixed(2)}</span></div>`:''}
+    </div>
+    <div style="margin-top:10px;background:${isBuy?'var(--green-g)':'var(--red-g)'};border:1px solid ${isBuy?'rgba(0,212,170,.3)':'rgba(255,64,96,.3)'};border-radius:8px;padding:10px;font-family:var(--mono);font-size:9px;color:${isBuy?'var(--green)':'var(--red)'}">
+      <strong>⚡ Trade Plan:</strong> ${isBuy?'LONG':'SHORT'} NIFTY FUTURES near ${s.cmp.toFixed(0)}. 
+      Target ${s.tp.toFixed(0)} pts away (+${Math.abs(s.tp-s.cmp).toFixed(0)} pts). 
+      Stop ${s.sl.toFixed(0)} (−${Math.abs(s.sl-s.cmp).toFixed(0)} pts). 
+      R:R = ${s.rr}:1. ${s.bars?`Resolved in ${s.bars} bars.`:'Still open.'}
+    </div>`;
+  document.getElementById('sigDetail').classList.add('open');
+}
+function closeSigDetail() { document.getElementById('sigDetail').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════════════
+// BACKTEST ENGINE
+// ═══════════════════════════════════════════════════════════
+function runBacktest() {
+  if (!rows.length) { toast('Load data first', 'err'); return; }
+  const tpMult = parseFloat(document.getElementById('btTP').value) || 2.5;
+  const slMult = parseFloat(document.getElementById('btSL').value) || 1.5;
+  const minScore = parseInt(document.getElementById('btMinScore').value) || 0;
+  const sigF = document.getElementById('btSigFilter').value;
+  const closes = rows.map(r=>r.cl), highs = rows.map(r=>r.hi), lows = rows.map(r=>r.lo);
+  const h9 = calcHMA(closes,9), h10 = calcHMA(closes,10);
+  const {smi,sig:smiSig} = calcSMI(highs,lows,closes);
+  const atrs = calcATR(highs,lows,closes);
+  const rsiArr = calcRSI(closes);
+  btResults = [];
+  let equity=0, peak=0, maxDD=0;
+  for (let i=20; i<rows.length-1; i++) {
+    if (h9[i]===null||h10[i]===null) continue;
+    const bdI = calcBandZone(closes.slice(0,i+1));
+    if (!bdI) continue;
+    const subH9=h9.slice(0,i+1),subH10=h10.slice(0,i+1);
+    const subSMI=smi.slice(0,i+1),subSMISig=smiSig.slice(0,i+1);
+    const sig = detectSALT(subH9,subH10,subSMI,subSMISig,bdI.bandZone);
+    if (sig==='WAIT') continue;
+    const smiNow=smi[i]||0, smiPrev=smi[i-1]||smiNow;
+    if (sig.startsWith('B')&&smiNow<=smiPrev) continue;
+    if (sig.startsWith('S')&&smiNow>=smiPrev) continue;
+    if (sigF==='buy'&&!sig.startsWith('B')) continue;
+    if (sigF==='sell'&&!sig.startsWith('S')) continue;
+    if (sigF!=='all'&&sigF!=='buy'&&sigF!=='sell'&&sig!==sigF) continue;
+    const atr=atrs[i]||closes[i]*0.01;
+    const score=calcScore(sig,bdI.bandZone,0,rsiArr[i]||50,20);
+    if (score<minScore) continue;
+    const cmp=closes[i], isBuy=sig.startsWith('B');
+    const tp=isBuy?cmp+atr*tpMult:cmp-atr*tpMult;
+    const sl=isBuy?cmp-atr*slMult:cmp+atr*slMult;
+    let outcome='open',exitPrice=null,exitDate=null,bars=null;
+    for (let j=i+1; j<rows.length; j++) {
+      const h=rows[j].hi,l=rows[j].lo;
+      const htTP=isBuy?h>=tp:l<=tp;
+      const htSL=isBuy?l<=sl:h>=sl;
+      if (htTP&&htSL){outcome='loss';exitPrice=sl;}
+      else if (htTP){outcome='win';exitPrice=tp;}
+      else if (htSL){outcome='loss';exitPrice=sl;}
+      if (outcome!=='open'){exitDate=rows[j].date;bars=j-i;break;}
+    }
+    if (outcome==='open') continue;
+    const pnlPts=parseFloat((exitPrice-cmp).toFixed(2));
+    const pnlPct=parseFloat(((exitPrice-cmp)/cmp*100).toFixed(2));
+    equity+=pnlPts; peak=Math.max(peak,equity);
+    maxDD=Math.max(maxDD,peak-equity);
+    btResults.push({entryDate:rows[i].date,exitDate,signal:sig,score,entry:cmp,
+      tp:parseFloat(tp.toFixed(2)),sl:parseFloat(sl.toFixed(2)),
+      exit:parseFloat(exitPrice.toFixed(2)),pnlPts,pnlPct,bars,outcome,
+      equityAfter:parseFloat(equity.toFixed(2))});
+  }
+  renderBacktestResults(maxDD);
+  renderEquityCurve();
+  toast('Backtest: '+btResults.length+' trades \u00b7 '+btResults.filter(t=>t.outcome==='win').length+' wins','ok');
+}
+
+function renderBacktestResults(maxDD) {
+  const wins=btResults.filter(t=>t.outcome==='win');
+  const losses=btResults.filter(t=>t.outcome==='loss');
+  const wr=btResults.length?Math.round(wins.length/btResults.length*100):0;
+  const totalPts=btResults.reduce((s,t)=>s+t.pnlPts,0);
+  const avgWin=wins.length?wins.reduce((s,t)=>s+t.pnlPts,0)/wins.length:0;
+  const avgLoss=losses.length?Math.abs(losses.reduce((s,t)=>s+t.pnlPts,0)/losses.length):0;
+  const pf=avgLoss>0?(avgWin/avgLoss).toFixed(2):'INF';
+  const avgBars=btResults.length?(btResults.reduce((s,t)=>s+(t.bars||0),0)/btResults.length).toFixed(1):0;
+  const maxWin=wins.length?Math.max(...wins.map(t=>t.pnlPts)).toFixed(1):0;
+  const maxLossV=losses.length?Math.min(...losses.map(t=>t.pnlPts)).toFixed(1):0;
+  const wrColor=wr>=55?'var(--green)':wr>=45?'var(--amber)':'var(--red)';
+  const ptsColor=totalPts>=0?'var(--green)':'var(--red)';
+  document.getElementById('btSummary').innerHTML=`
+    <div class="card-title">&#x1F4C8; Backtest Summary &middot; ${btResults.length} Trades</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:${wrColor}">${wr}%</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">WIN RATE</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--blue)">${pf}</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">PROFIT FACTOR</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:8px">
+        <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:${ptsColor}">${totalPts>=0?'+':''}${totalPts.toFixed(0)}</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">TOTAL PTS</div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono)">
+      <div class="stat-row"><span class="stat-key">Wins / Losses</span><span class="stat-val"><span class="v-green">${wins.length}W</span> / <span class="v-red">${losses.length}L</span></span></div>
+      <div class="stat-row"><span class="stat-key">Avg Win / Avg Loss</span><span class="stat-val"><span class="v-green">+${avgWin.toFixed(1)}</span> / <span class="v-red">-${avgLoss.toFixed(1)}</span></span></div>
+      <div class="stat-row"><span class="stat-key">Best / Worst Trade</span><span class="stat-val"><span class="v-green">+${maxWin}</span> / <span class="v-red">${maxLossV}</span></span></div>
+      <div class="stat-row"><span class="stat-key">Max Drawdown</span><span class="stat-val v-red">${maxDD.toFixed(1)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">Avg Days to Exit</span><span class="stat-val v-dim">${avgBars} days</span></div>
+      <div class="stat-row"><span class="stat-key">Expectancy/Trade</span><span class="stat-val ${totalPts/btResults.length>=0?'v-green':'v-red'}">${btResults.length?(totalPts/btResults.length).toFixed(1):'0'} pts</span></div>
+    </div>`;
+  const tbody=document.getElementById('btTableBody');
+  if (!btResults.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No trades matched filters</td></tr>';return;}
+  tbody.innerHTML=btResults.slice().reverse().map(t=>{
+    const pc=t.pnlPts>=0?'v-green':'v-red';
+    return `<tr>
+      <td>${t.entryDate}</td><td>${t.exitDate||'—'}</td>
+      <td><span class="badge ${t.signal.startsWith('B')?'b-buy':'b-sell'}">${t.signal}</span></td>
+      <td>${t.entry.toFixed(2)}</td>
+      <td class="v-green">${t.tp.toFixed(2)}</td>
+      <td class="v-red">${t.sl.toFixed(2)}</td>
+      <td>${t.exit.toFixed(2)}</td>
+      <td class="${pc}" style="font-weight:700">${t.pnlPts>=0?'+':''}${t.pnlPts.toFixed(1)}</td>
+      <td class="${pc}">${t.pnlPct>=0?'+':''}${t.pnlPct.toFixed(2)}%</td>
+      <td>${t.bars}</td>
+      <td style="color:${t.score>=65?'var(--green)':t.score>=45?'var(--amber)':'var(--red)'}">${t.score}</td>
+      <td><span class="badge ${t.outcome==='win'?'b-win':'b-loss'}">${t.outcome.toUpperCase()}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderEquityCurve() {
+  if (!btResults.length) return;
+  const div=document.getElementById('equityCurveDiv');
+  div.innerHTML='';
+  if (equityChart){try{equityChart.remove();}catch(e){}equityChart=null;}
+  equityChart=LightweightCharts.createChart(div,{
+    layout:{background:{color:'#0f1220'},textColor:'#6b7599'},
+    grid:{vertLines:{color:'#1e2438'},horzLines:{color:'#1e2438'}},
+    width:div.clientWidth||800,height:200,
+    rightPriceScale:{borderColor:'#2a3050'},
+    timeScale:{borderColor:'#2a3050',timeVisible:true}
+  });
+  const areaSeries=equityChart.addAreaSeries({
+    topColor:'rgba(0,212,170,.3)',bottomColor:'rgba(0,212,170,.01)',
+    lineColor:'#00d4aa',lineWidth:2
+  });
+  // deduplicate dates for lightweight-charts (requires unique ascending times)
+  const seen={};
+  const eqData=btResults
+    .filter(t=>t.exitDate)
+    .map(t=>({time:t.exitDate,value:t.equityAfter}))
+    .filter(d=>{if(seen[d.time])return false;seen[d.time]=true;return true;})
+    .sort((a,b)=>a.time.localeCompare(b.time));
+  if(eqData.length) areaSeries.setData(eqData);
+  equityChart.timeScale().fitContent();
+  const ro=new ResizeObserver(()=>{ if(equityChart) equityChart.applyOptions({width:div.clientWidth}); });
+  ro.observe(div);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFLUENCE
+// ═══════════════════════════════════════════════════════════
+function computeConfluenceScore(s, vwapVal, vp) {
+  let earned=0, total=0;
+  const isBuy=s.signal.startsWith('B');
+  const checks=[
+    {w:20, pass: isBuy?(s.signal.startsWith('B')):s.signal.startsWith('S')},
+    {w:20, pass: isBuy?s.smi<-20:s.smi>20},
+    {w:20, pass: vwapVal?(isBuy?s.cmp>vwapVal:s.cmp<vwapVal):null},
+    {w:20, pass: isBuy?(s.bandZone==='rej_lo'||s.bandZone==='below_va'):(s.bandZone==='rej_hi'||s.bandZone==='above_va')},
+    {w:20, pass: isBuy?s.rsi<45:s.rsi>55},
+  ];
+  checks.forEach(c=>{total+=c.w; if(c.pass===true)earned+=c.w; else if(c.pass===null)earned+=c.w*0.5;});
+  return Math.round(earned/total*100);
+}
+
+function renderConfluence() {
+  if (!rows.length) return;
+  const closes=rows.map(r=>r.cl),highs=rows.map(r=>r.hi),lows=rows.map(r=>r.lo);
+  const n=rows.length-1;
+  const h9=calcHMA(closes,9),h10=calcHMA(closes,10);
+  const {smi,sig:smiSig}=calcSMI(highs,lows,closes);
+  const atrs=calcATR(highs,lows,closes);
+  const rsiArr=calcRSI(closes);
+  const vwap=calcVWAP(rows);
+  const bd=calcBandZone(closes);
+  const vp=calcVolumeProfile(rows);
+  const hvArr=calcHV(closes);
+  if (!bd||h9[n]===null) return;
+  const sig=detectSALT(h9,h10,smi,smiSig,bd.bandZone);
+  const isBuy=sig.startsWith('B'),isSell=sig.startsWith('S');
+  const c=closes[n],vwapVal=vwap[n],rsi=rsiArr[n]||50,hv=hvArr[n]||15;
+  const smiNow=smi[n]||0,smiSigNow=smiSig[n]||0;
+  const h9Now=h9[n],h10Now=h10[n],atr=atrs[n]||c*0.01;
+
+  const layers=[
+    {name:'HMA Trend (HMA9 vs HMA10)',weight:25,
+     pass:isBuy?h9Now>h10Now:isSell?h9Now<h10Now:null,
+     warn:Math.abs((h9Now||0)-(h10Now||0))<5,
+     detail:`HMA9 ${(h9Now||0).toFixed(2)} vs HMA10 ${(h10Now||0).toFixed(2)} \u2014 ${h9Now>h10Now?'\u25b2 BULLISH':'\u25bc BEARISH'} | spread ${Math.abs((h9Now||0)-(h10Now||0)).toFixed(1)} pts`},
+    {name:'SMI Momentum Zone',weight:25,
+     pass:isBuy?smiNow<-20:isSell?smiNow>20:null,
+     warn:Math.abs(smiNow)<15,
+     detail:`SMI ${smiNow.toFixed(1)} \u00b7 Signal ${smiSigNow.toFixed(1)} \u2014 ${smiNow<-40?'\ud83d\udfe2 Deep oversold \u2014 reversal probable':smiNow<-20?'Oversold zone':smiNow>40?'\ud83d\udd34 Deep overbought':smiNow>20?'Overbought zone':'Neutral \u2014 wait for extreme'}`},
+    {name:'VWAP Institutional Anchor',weight:20,
+     pass:vwapVal?(isBuy?c>vwapVal:isSell?c<vwapVal:null):null,
+     warn:vwapVal&&Math.abs(c-vwapVal)<5,
+     detail:vwapVal?`CMP ${c.toFixed(2)} vs VWAP ${vwapVal.toFixed(2)} \u2014 ${c>vwapVal?'ABOVE (bull side)':'BELOW (bear side)'}  diff: ${Math.abs(c-vwapVal).toFixed(1)} pts`:'Volume data required for VWAP'},
+    {name:'Volume Profile Band Zone',weight:20,
+     pass:isBuy?(bd.bandZone==='rej_lo'||bd.bandZone==='below_va'):isSell?(bd.bandZone==='rej_hi'||bd.bandZone==='above_va'):null,
+     warn:bd.bandZone==='va',
+     detail:`Zone: ${bd.bandZone.replace(/_/g,' ').toUpperCase()} \u2014 ${bd.bandZone==='rej_lo'||bd.bandZone==='below_va'?'At/near support \u2014 buy zone favored':bd.bandZone==='rej_hi'||bd.bandZone==='above_va'?'At/near resistance \u2014 sell zone favored':'Inside value area \u2014 lower probability setup'}`},
+    {name:'RSI Alignment (14)',weight:10,
+     pass:isBuy?rsi<45:isSell?rsi>55:null,
+     warn:rsi>=45&&rsi<=55,
+     detail:`RSI ${rsi.toFixed(1)} \u2014 ${rsi<30?'Oversold':rsi<45?'Below midline (bullish)':rsi>70?'Overbought':rsi>55?'Above midline (bearish)':'Neutral'}`},
+    {name:'Volatility Filter (HV)',weight:10,
+     pass:hv<25,warn:hv>=25&&hv<35,
+     detail:`HV(20) = ${hv.toFixed(1)}% \u2014 ${hv<12?'Very low \u2014 good for options selling':hv<18?'\u2705 Normal range':hv<25?'\u26a0 Elevated \u2014 widen stops':hv<35?'High \u2014 reduce position size':'Extreme \u2014 avoid or hedge'}`},
+    ...(vp?[{name:'POC Proximity',weight:5,
+     pass:Math.abs(c-vp.poc)/c<0.005,warn:Math.abs(c-vp.poc)/c<0.015,
+     detail:`POC ${vp.poc.toFixed(2)} | VAH ${vp.vah.toFixed(2)} | VAL ${vp.val.toFixed(2)} | ${Math.abs(c-vp.poc).toFixed(1)} pts from POC`}]:[]),
+  ];
+
+  let earned=0,total=0;
+  layers.forEach(l=>{total+=l.weight;if(l.pass===true)earned+=l.weight;else if(l.warn||l.pass===null)earned+=l.weight*0.4;});
+  const confPct=Math.round(earned/total*100);
+  const confColor=confPct>=70?'var(--green)':confPct>=50?'var(--amber)':'var(--red)';
+
+  document.getElementById('confChecks').innerHTML=layers.map(l=>`
+    <div class="conf-row">
+      <div class="conf-icon ${l.pass===true?'ci-pass':l.pass===false&&!l.warn?'ci-fail':l.warn?'ci-warn':'ci-na'}">
+        ${l.pass===true?'\u2713':l.pass===false&&!l.warn?'\u2717':l.warn?'!':'?'}
+      </div>
+      <div>
+        <div class="conf-name">${l.name} <span style="font-size:8px;color:var(--text3)">(${l.weight}pts)</span></div>
+        <div class="conf-detail">${l.detail}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('confScoreVal').textContent=confPct+'%';
+  document.getElementById('confScoreVal').style.color=confColor;
+  document.getElementById('confFill').style.width=confPct+'%';
+  document.getElementById('confFill').style.background=confColor;
+  const verdict=confPct>=75?'\ud83d\udfe2 HIGH CONFLUENCE \u2014 Trade with full position':
+    confPct>=60?'\ud83d\udfe1 MODERATE \u2014 Trade with 50-75% size':
+    confPct>=45?'\ud83d\udfe0 LOW \u2014 Wait for better setup':
+    '\ud83d\udd34 VERY LOW \u2014 Do not trade this setup';
+  document.getElementById('confVerdict').textContent=verdict;
+  document.getElementById('confVerdict').style.color=confColor;
+
+  document.getElementById('confBars').innerHTML=layers.map(l=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text2);width:170px;flex-shrink:0;line-height:1.3">${l.name}</div>
+      <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${l.pass===true?100:l.warn?40:0}%;background:${l.pass===true?'var(--green)':l.warn?'var(--amber)':'var(--red)'};border-radius:3px;transition:width .5s"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:8px;font-weight:700;color:${l.pass===true?'var(--green)':l.warn?'var(--amber)':'var(--red)'};width:36px;text-align:right">${l.pass===true?'PASS':l.warn?'PART':'FAIL'}</div>
+    </div>`).join('');
+
+  // Trade recommendation box
+  const tp=isBuy?c+atr*2.5:isSell?c-atr*2.5:null;
+  const sl=isBuy?c-atr*1.5:isSell?c+atr*1.5:null;
+  const score=sig!=='WAIT'?calcScore(sig,bd.bandZone,0,rsi,20):0;
+  document.getElementById('tradeRec').innerHTML=sig!=='WAIT'?`
+    <div style="background:${isBuy?'var(--green-g)':'var(--red-g)'};border:1px solid ${isBuy?'rgba(0,212,170,.3)':'rgba(255,64,96,.3)'};border-radius:8px;padding:12px;font-family:var(--mono)">
+      <div style="font-size:14px;font-weight:700;color:${isBuy?'var(--green)':'var(--red)'};margin-bottom:10px">
+        ${isBuy?'\u25b2 LONG':'VSHORT'} NIFTY FUTURES &middot; ${sig} &middot; Score ${score}/100
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
+        <div style="background:rgba(0,0,0,.3);border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Entry</div>
+          <div style="font-size:14px;font-weight:700;color:var(--amber)">${c.toFixed(2)}</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Target</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green)">${tp.toFixed(2)}</div>
+          <div style="font-size:8px;color:var(--text2)">${isBuy?'+':''}${Math.abs(tp-c).toFixed(0)} pts</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Stop Loss</div>
+          <div style="font-size:14px;font-weight:700;color:var(--red)">${sl.toFixed(2)}</div>
+          <div style="font-size:8px;color:var(--text2)">-${Math.abs(sl-c).toFixed(0)} pts</div>
+        </div>
+        <div style="background:rgba(0,0,0,.3);border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">R:R</div>
+          <div style="font-size:14px;font-weight:700;color:var(--blue)">${(Math.abs(tp-c)/Math.abs(sl-c)).toFixed(2)}:1</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,.25);border-radius:6px;padding:8px;font-size:9px;color:var(--text);line-height:1.7">
+        <strong style="color:${isBuy?'var(--green)':'var(--red)'}">Trade Rules:</strong><br>
+        &bull; Enter ${isBuy?'LONG':'SHORT'} near ${c.toFixed(2)} on 5-min confirmation candle<br>
+        &bull; Exit 50% at Target 1 (${tp.toFixed(2)}), trail remainder with HMA9<br>
+        &bull; Hard stop at ${sl.toFixed(2)} &mdash; no exceptions<br>
+        &bull; If price closes beyond stop on 5-min chart, exit immediately<br>
+        &bull; Confluence score: <strong style="color:${confColor}">${confPct}%</strong> &mdash; ${confPct>=65?'High probability setup':'Wait for stronger confluence'}
+      </div>
+    </div>`:
+    `<div style="text-align:center;padding:24px;font-family:var(--mono);color:var(--text3)">
+      <div style="font-size:24px;margin-bottom:8px">&#x23F3;</div>
+      <div style="font-size:11px;color:var(--amber);font-weight:700">NO SIGNAL ON CURRENT BAR</div>
+      <div style="font-size:9px;margin-top:8px;line-height:1.8;color:var(--text2)">
+        HMA9/10 crossover + SMI alignment not active.<br>
+        Last signal: ${allSignals.length?allSignals[allSignals.length-1].date+' \u2014 '+allSignals[allSignals.length-1].signal:'none found'}<br>
+        Wait for conditions to align before entering.
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LATEST SIGNAL CARD
+// ═══════════════════════════════════════════════════════════
+function renderLatestSignal() {
+  const el=document.getElementById('latestSigCard');
+  if (!allSignals.length){el.innerHTML='<div class="card-title">\ud83c\udfaf Latest Signal</div><div class="empty">No signals detected in data</div>';return;}
+  const lastSig=allSignals[allSignals.length-1];
+  const isBuy=lastSig.signal.startsWith('B');
+  const recent=allSignals.slice(-6).reverse();
+  el.innerHTML=`<div class="card-title">\ud83c\udfaf Latest Signal &middot; ${lastSig.date}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:10px;background:${isBuy?'var(--green-g)':'var(--red-g)'};border:1px solid ${isBuy?'rgba(0,212,170,.25)':'rgba(255,64,96,.25)'};border-radius:8px">
+      <div style="font-family:var(--mono);font-size:30px;font-weight:700;color:${isBuy?'var(--green)':'var(--red)'}">${lastSig.signal}</div>
+      <div style="font-family:var(--mono)">
+        <div style="font-size:10px;color:var(--text2)">${lastSig.date} &middot; Score <strong style="color:${lastSig.score>=65?'var(--green)':lastSig.score>=45?'var(--amber)':'var(--red)'}">${lastSig.score}/100</strong></div>
+        <div style="font-size:11px;margin-top:2px">Entry <strong style="color:var(--amber)">${lastSig.cmp.toFixed(2)}</strong> &middot; TP <strong style="color:var(--green)">${lastSig.tp.toFixed(2)}</strong> &middot; SL <strong style="color:var(--red)">${lastSig.sl.toFixed(2)}</strong></div>
+        <div style="font-size:9px;color:var(--text2);margin-top:2px">R:R ${lastSig.rr}:1 &middot; ATR ${lastSig.atr.toFixed(1)} pts &middot; SMI ${lastSig.smi} &middot; Zone: ${lastSig.bandZone.replace(/_/g,' ')}</div>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Recent Signals</div>
+    ${recent.map(s=>`<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px">
+      <span style="color:var(--text3);width:76px">${s.date}</span>
+      <span class="badge ${s.signal.startsWith('B')?'b-buy':'b-sell'}">${s.signal}</span>
+      <span style="color:${s.score>=65?'var(--green)':s.score>=45?'var(--amber)':'var(--red)'}">${s.score}</span>
+      <span style="color:var(--text2)">${s.cmp.toFixed(0)}</span>
+      <span style="margin-left:auto" class="badge ${s.outcome==='win'?'b-win':s.outcome==='loss'?'b-loss':'b-open'}">${s.outcome.toUpperCase()}</span>
+      ${s.pnlPts!==null?`<span class="${s.pnlPts>=0?'v-green':'v-red'}" style="min-width:40px;text-align:right">${s.pnlPts>=0?'+':''}${s.pnlPts.toFixed(1)}</span>`:''}
+    </div>`).join('')}`;
+}
+
+function renderVPCard() {
+  const el=document.getElementById('vpCard');
+  const vp=calcVolumeProfile(rows);
+  if (!vp){el.innerHTML='<div class="card-title">\ud83d\udcca Volume Profile</div><div class="empty">Need volume data or more bars</div>';return;}
+  const c=rows[rows.length-1].cl;
+  const bd=calcBandZone(rows.map(r=>r.cl));
+  const pctFromPOC=((c-vp.poc)/vp.poc*100).toFixed(2);
+  el.innerHTML=`<div class="card-title">\ud83d\udcca Volume Profile &middot; 250-Bar</div>
+    <div style="font-family:var(--mono)">
+      <div class="stat-row"><span class="stat-key">POC (Point of Control)</span><span class="stat-val" style="color:var(--teal)">${vp.poc.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">VAH (Value Area High)</span><span class="stat-val v-green">${vp.vah.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">VAL (Value Area Low)</span><span class="stat-val v-red">${vp.val.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">Price vs POC</span><span class="stat-val ${c>vp.poc?'v-green':'v-red'}">${c>vp.poc?'ABOVE':'BELOW'} by ${Math.abs(c-vp.poc).toFixed(1)} pts (${Math.abs(pctFromPOC)}%)</span></div>
+      <div class="stat-row"><span class="stat-key">52W Range</span><span class="stat-val v-dim">${vp.loDyn.toFixed(0)} \u2013 ${vp.hiDyn.toFixed(0)}</span></div>
+      <div class="stat-row"><span class="stat-key">Band Zone</span><span class="stat-val v-amber">${bd?bd.bandZone.replace(/_/g,' ').toUpperCase():'—'}</span></div>
+    </div>
+    <div style="margin-top:8px;padding:7px 10px;border-radius:6px;font-family:var(--mono);font-size:8px;line-height:1.7;
+      background:${c>vp.vah?'var(--amber-g)':c<vp.val?'var(--green-g)':'var(--blue-g)'};
+      border:1px solid ${c>vp.vah?'rgba(245,166,35,.25)':c<vp.val?'rgba(0,212,170,.25)':'rgba(77,124,254,.25)'};
+      color:${c>vp.vah?'var(--amber)':c<vp.val?'var(--green)':'var(--blue)'}">
+      ${c>vp.vah?'\u26a0 ABOVE value area \u2014 extended. Watch for rejection near resistance. Consider fading or waiting for pullback to VAH.':
+        c<vp.val?'\u2705 BELOW value area \u2014 oversold zone. POC acts as magnet above. High-probability bounce setup if confluence aligns.':
+        '\u2139 Inside value area \u2014 balanced. Wait for breakout above VAH or breakdown below VAL for directional trade.'}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// REGIME + STATS
+// ═══════════════════════════════════════════════════════════
+function renderRegime() {
+  if (!rows.length) return;
+  const closes=rows.map(r=>r.cl),highs=rows.map(r=>r.hi),lows=rows.map(r=>r.lo);
+  const n=rows.length-1;
+  const h9=calcHMA(closes,9),h10=calcHMA(closes,10);
+  const hvArr=calcHV(closes),rsiArr=calcRSI(closes),atrs=calcATR(highs,lows,closes);
+  const isBull=h9[n]>h10[n];
+  const hv=hvArr[n]||15,rsi=rsiArr[n]||50,atr=atrs[n]||0;
+  const hvFiltered=hvArr.filter(v=>v!==null);
+  const hvMean=hvFiltered.length?hvFiltered.reduce((a,b)=>a+b,0)/hvFiltered.length:15;
+  const hvMin=hvFiltered.length?Math.min(...hvFiltered):5;
+  const hvMax=hvFiltered.length?Math.max(...hvFiltered):40;
+  const hvPct=Math.round((hv-hvMin)/(hvMax-hvMin)*100);
+
+  document.getElementById('regimeCard').innerHTML=`
+    <div style="text-align:center;margin-bottom:10px;padding:12px;background:${isBull?'var(--green-g)':'var(--red-g)'};border-radius:8px;border:1px solid ${isBull?'rgba(0,212,170,.25)':'rgba(255,64,96,.25)'}">
+      <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${isBull?'var(--green)':'var(--red)'}">${isBull?'\u25b2 BULL REGIME':'\u25bc BEAR REGIME'}</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-top:3px">HMA9 ${isBull?'>':'<'} HMA10 &middot; Last: ${closes[n].toFixed(2)}</div>
+    </div>
+    <div style="font-family:var(--mono)">
+      <div class="stat-row"><span class="stat-key">HMA9</span><span class="stat-val" style="color:var(--blue)">${(h9[n]||0).toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">HMA10</span><span class="stat-val v-dim">${(h10[n]||0).toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">HMA Spread</span><span class="stat-val ${isBull?'v-green':'v-red'}">${Math.abs((h9[n]||0)-(h10[n]||0)).toFixed(2)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">RSI (14)</span><span class="stat-val" style="color:${rsi<40?'var(--green)':rsi>60?'var(--red)':'var(--amber)'}">${rsi.toFixed(1)}</span></div>
+      <div class="stat-row"><span class="stat-key">ATR (14)</span><span class="stat-val v-amber">${atr.toFixed(1)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">Data Range</span><span class="stat-val v-dim" style="font-size:8px">${rows[0].date} \u2192 ${rows[n].date}</span></div>
+    </div>`;
+
+  document.getElementById('volCard').innerHTML=`
+    <div style="font-family:var(--mono)">
+      <div class="stat-row"><span class="stat-key">HV (20d)</span><span class="stat-val" style="color:${hv<15?'var(--green)':hv<25?'var(--amber)':'var(--red)'}">${hv.toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="stat-key">HV Mean</span><span class="stat-val v-dim">${hvMean.toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="stat-key">HV Range</span><span class="stat-val v-dim">${hvMin.toFixed(1)} \u2013 ${hvMax.toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="stat-key">HV Percentile</span><span class="stat-val" style="color:${hvPct<30?'var(--green)':hvPct<70?'var(--amber)':'var(--red)'}">${hvPct}th</span></div>
+      <div class="stat-row"><span class="stat-key">Regime</span><span class="stat-val" style="color:${hv<12?'var(--green)':hv<20?'var(--green)':hv<30?'var(--amber)':'var(--red)'}">${hv<12?'Very Low \u2014 options selling':hv<20?'Normal \u2014 trade freely':hv<30?'Elevated \u2014 reduce size':'High \u2014 hedge or avoid'}</span></div>
+    </div>
+    <div style="margin-top:8px">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--text2);margin-bottom:3px">Volatility Percentile (${hvPct}th)</div>
+      <div class="reg-track"><div class="reg-fill" style="width:${Math.min(100,hvPct)}%;background:${hvPct<30?'var(--green)':hvPct<70?'var(--amber)':'var(--red)'}"></div></div>
+    </div>`;
+
+  // Seasonal monthly returns
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthlyRet={};
+  for (let i=1;i<rows.length;i++){
+    const d=rows[i].date,pd=rows[i-1].date;
+    if (d.slice(0,7)!==pd.slice(0,7)){
+      const m=parseInt(d.slice(5,7))-1;
+      if (!monthlyRet[m]) monthlyRet[m]=[];
+      monthlyRet[m].push((rows[i].cl-rows[i-1].cl)/rows[i-1].cl*100);
+    }
+  }
+  const curM=new Date().getMonth();
+  const avgByM=Array.from({length:12},(_,i)=>monthlyRet[i]?monthlyRet[i].reduce((a,b)=>a+b,0)/monthlyRet[i].length:null);
+  const sortedM=[...avgByM.map((v,i)=>({v,i}))].filter(x=>x.v!==null).sort((a,b)=>b.v-a.v);
+  const bestMs=sortedM.slice(0,3).map(x=>x.i);
+  const worstMs=sortedM.slice(-2).map(x=>x.i);
+  document.getElementById('seasonCard').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;font-family:var(--mono)">
+      ${monthNames.map((m,i)=>{
+        const v=avgByM[i];
+        const isBest=bestMs.includes(i),isWorst=worstMs.includes(i),isCur=i===curM;
+        const bg=isCur?'rgba(245,166,35,.18)':isBest?'rgba(0,212,170,.12)':isWorst?'rgba(255,64,96,.12)':'var(--bg3)';
+        const bc=isCur?'rgba(245,166,35,.5)':'var(--border)';
+        return `<div style="background:${bg};border:1px solid ${bc};border-radius:4px;padding:3px 4px;text-align:center">
+          <div style="font-size:7px;color:var(--text3)">${m}${isCur?' \u25c0':''}</div>
+          <div style="font-size:9px;font-weight:700;color:${v===null?'var(--text3)':v>0?'var(--green)':'var(--red)'}">${v===null?'\u2014':(v>=0?'+':'')+v.toFixed(1)+'%'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:5px;font-family:var(--mono);font-size:8px;color:var(--text2);line-height:1.5">
+      \u25c4 Current month &middot; \ud83d\udfe2 Best months &middot; \ud83d\udd34 Worst months &middot; Based on ${rows.length} days of data
+    </div>`;
+
+  // Regime transitions
+  const transitions=[];
+  for (let i=1;i<rows.length;i++){
+    if (h9[i]===null||h10[i]===null||h9[i-1]===null||h10[i-1]===null) continue;
+    const wasBull=h9[i-1]>h10[i-1],nowBull=h9[i]>h10[i];
+    if (!wasBull&&nowBull) transitions.push({date:rows[i].date,type:'bull',price:closes[i],idx:i});
+    else if (wasBull&&!nowBull) transitions.push({date:rows[i].date,type:'bear',price:closes[i],idx:i});
+  }
+  const tbody=document.getElementById('regimeBody');
+  if (!transitions.length){tbody.innerHTML='<tr><td colspan="5" class="empty">No regime transitions found</td></tr>';return;}
+  tbody.innerHTML=transitions.slice().reverse().map((t,ti,arr)=>{
+    const nextT=arr[ti+1];
+    const days=nextT?Math.round((new Date(t.date)-new Date(nextT.date))/86400000):'open';
+    const nextPrice=nextT?closes[nextT.idx]:closes[n];
+    const move=((nextPrice-t.price)/t.price*100).toFixed(2);
+    const mc=parseFloat(move)>=0?'var(--green)':'var(--red)';
+    return `<tr>
+      <td>${t.date}</td>
+      <td><span class="badge ${t.type==='bull'?'b-buy':'b-sell'}">${t.type==='bull'?'\u25b2 BULL FLIP':'\u25bc BEAR FLIP'}</span></td>
+      <td style="font-family:var(--mono)">${t.price.toFixed(2)}</td>
+      <td>${days}</td>
+      <td style="color:${mc};font-weight:700;font-family:var(--mono)">${parseFloat(move)>=0?'+':''}${move}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStats() {
+  if (!rows.length) return;
+  const closes=rows.map(r=>r.cl),n=rows.length-1;
+  const totalReturn=((closes[n]-closes[0])/closes[0]*100).toFixed(2);
+  const maxH=Math.max(...rows.map(r=>r.hi)),minL=Math.min(...rows.map(r=>r.lo));
+  const hvArr=calcHV(closes),hv=hvArr[n]||0;
+  const resolved=allSignals.filter(s=>s.outcome!=='open');
+  const wins=resolved.filter(s=>s.outcome==='win');
+  const wr=resolved.length?Math.round(wins.length/resolved.length*100):0;
+  const totalPts=resolved.reduce((s,x)=>s+x.pnlPts,0);
+  const avgWin=wins.length?wins.reduce((s,t)=>s+t.pnlPts,0)/wins.length:0;
+  const avgLoss=resolved.filter(s=>s.outcome==='loss').length?
+    Math.abs(resolved.filter(s=>s.outcome==='loss').reduce((s,t)=>s+t.pnlPts,0)/resolved.filter(s=>s.outcome==='loss').length):0;
+  const pf=avgLoss>0?(avgWin/avgLoss).toFixed(2):'N/A';
+
+  document.getElementById('statsGrid').innerHTML=[
+    {label:'Total Bars Loaded',val:rows.length,sub:`${rows[0].date} \u2192 ${rows[n].date}`,color:'var(--blue)'},
+    {label:'Total Return',val:(parseFloat(totalReturn)>=0?'+':'')+totalReturn+'%',sub:`${closes[0].toFixed(0)} \u2192 ${closes[n].toFixed(0)}`,color:parseFloat(totalReturn)>=0?'var(--green)':'var(--red)'},
+    {label:'52W High',val:maxH.toFixed(0),sub:'Highest high in data',color:'var(--green)'},
+    {label:'52W Low',val:minL.toFixed(0),sub:'Lowest low in data',color:'var(--red)'},
+    {label:'HV (20d)',val:hv.toFixed(1)+'%',sub:hv<15?'Low vol regime':hv<25?'Normal vol':'High vol',color:hv<15?'var(--green)':hv<25?'var(--amber)':'var(--red)'},
+    {label:'Total Signals',val:allSignals.length,sub:`${resolved.length} resolved`,color:'var(--amber)'},
+    {label:'Win Rate',val:wr+'%',sub:`${wins.length}W / ${resolved.length-wins.length}L`,color:wr>=55?'var(--green)':wr>=45?'var(--amber)':'var(--red)'},
+    {label:'Total Signal PnL',val:(totalPts>=0?'+':'')+totalPts.toFixed(1)+' pts',sub:`Profit factor: ${pf}`,color:totalPts>=0?'var(--green)':'var(--red)'},
+  ].map(c=>`<div class="sum-card">
+    <div class="sum-label">${c.label}</div>
+    <div class="sum-val" style="color:${c.color}">${c.val}</div>
+    <div class="sum-sub">${c.sub}</div>
+  </div>`).join('');
+
+  // Signal performance by type
+  const byType={};
+  resolved.forEach(s=>{
+    if (!byType[s.signal]) byType[s.signal]={w:0,l:0,pts:0,avgBars:0,n:0};
+    if (s.outcome==='win') byType[s.signal].w++;
+    else byType[s.signal].l++;
+    byType[s.signal].pts+=s.pnlPts;
+    byType[s.signal].avgBars+=(s.bars||0);
+    byType[s.signal].n++;
+  });
+  document.getElementById('sigPerf').innerHTML=`
+    <table class="sig-table">
+      <thead><tr><th>Signal</th><th>Trades</th><th>Win%</th><th>Pts</th><th>Avg/trade</th><th>Prior WR</th></tr></thead>
+      <tbody>${Object.entries(byType).sort((a,b)=>(b[1].w+b[1].l)-(a[1].w+a[1].l)).map(([sig,d])=>{
+        const t=d.w+d.l,wr=Math.round(d.w/t*100),avg=(d.pts/t).toFixed(1);
+        return `<tr>
+          <td><span class="badge ${sig.startsWith('B')?'b-buy':'b-sell'}">${sig}</span></td>
+          <td>${t}</td>
+          <td style="color:${wr>=55?'var(--green)':wr>=45?'var(--amber)':'var(--red)'};font-weight:700">${wr}%</td>
+          <td style="color:${d.pts>=0?'var(--green)':'var(--red)'};font-weight:700">${d.pts>=0?'+':''}${d.pts.toFixed(1)}</td>
+          <td style="color:${parseFloat(avg)>=0?'var(--green)':'var(--red)'}">${parseFloat(avg)>=0?'+':''}${avg}</td>
+          <td style="color:var(--text2)">${PRIOR_WR[sig]||'—'}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+
+  // Monthly heatmap
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ymr={};
+  for (let i=1;i<rows.length;i++){
+    const d=rows[i].date,pd=rows[i-1].date;
+    if (d.slice(0,7)!==pd.slice(0,7)){
+      const yr=d.slice(0,4),m=parseInt(d.slice(5,7))-1;
+      if (!ymr[yr]) ymr[yr]={};
+      ymr[yr][m]=((rows[i].cl-rows[i-1].cl)/rows[i-1].cl*100).toFixed(1);
+    }
+  }
+  const years=Object.keys(ymr).sort();
+  document.getElementById('monthlyHeat').innerHTML=`
+    <table style="border-collapse:collapse;font-family:var(--mono);font-size:8px;width:100%">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="padding:3px 8px;color:var(--text2);text-align:left">Year</th>
+        ${monthNames.map(m=>`<th style="padding:3px 4px;color:var(--text2);text-align:center">${m}</th>`).join('')}
+        <th style="padding:3px 8px;color:var(--text2)">Total</th>
+      </tr></thead>
+      <tbody>${years.map(yr=>{
+        const tot=Object.values(ymr[yr]).reduce((a,b)=>a+parseFloat(b),0);
+        return `<tr style="border-bottom:1px solid var(--border)22">
+          <td style="padding:3px 8px;color:var(--text2);font-weight:700">${yr}</td>
+          ${Array.from({length:12},(_,m)=>{
+            const v=ymr[yr][m];
+            const col=v===undefined?'transparent':parseFloat(v)>2?'rgba(0,212,170,.45)':parseFloat(v)>0?'rgba(0,212,170,.18)':parseFloat(v)<-2?'rgba(255,64,96,.45)':'rgba(255,64,96,.18)';
+            return `<td style="padding:3px 4px;text-align:center;background:${col};border-radius:2px;color:${v===undefined?'var(--text3)':parseFloat(v)>=0?'var(--green)':'var(--red)'}">${v!==undefined?v:'—'}</td>`;
+          }).join('')}
+          <td style="padding:3px 8px;font-weight:700;color:${tot>=0?'var(--green)':'var(--red)'}">${tot>=0?'+':''}${tot.toFixed(1)}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PILLS
+// ═══════════════════════════════════════════════════════════
+function updatePills() {
+  if (!rows.length) return;
+  const closes=rows.map(r=>r.cl),n=rows.length-1;
+  const h9=calcHMA(closes,9),h10=calcHMA(closes,10);
+  const isBull=h9[n]>h10[n];
+  document.getElementById('pRows').textContent=rows.length+' BARS';
+  document.getElementById('pRegime').textContent=isBull?'\u25b2 BULL REGIME':'\u25bc BEAR REGIME';
+  document.getElementById('pRegime').className='pill '+(isBull?'p-green':'p-red');
+  document.getElementById('pDate').textContent=rows[n].date+' \u00b7 '+closes[n].toFixed(2);
+  const last=allSignals[allSignals.length-1];
+  if (last){
+    document.getElementById('pSig').textContent=last.signal+' \u00b7 '+last.date;
+    document.getElementById('pSig').className='pill '+(last.signal.startsWith('B')?'p-green':'p-red');
+    document.getElementById('pSig').style.display='';
+    document.getElementById('pConf').textContent='Score '+last.score;
+    document.getElementById('pConf').style.display='';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNAL DETAIL POPUP
+// ═══════════════════════════════════════════════════════════
+function showSigDetail(idx) {
+  const s=allSignals.find(x=>x.idx===idx);
+  if (!s) return;
+  const isBuy=s.signal.startsWith('B');
+  const vwapVal=calcVWAP(rows)[idx];
+  const vpI=calcVolumeProfile(rows.slice(0,idx+1));
+  const confPct=computeConfluenceScore(s,vwapVal,vpI);
+  document.getElementById('sdTitle').textContent=`${s.signal} \u00b7 ${s.date} \u00b7 Score ${s.score}`;
+  document.getElementById('sdBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${isBuy?'var(--green)':'var(--red)'}">${s.signal}</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">SIGNAL TYPE</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${s.score>=65?'var(--green)':s.score>=45?'var(--amber)':'var(--red)'}">${s.score}</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">SCORE / 100</div>
+      </div>
+      <div style="text-align:center;background:var(--bg3);border-radius:8px;padding:10px">
+        <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${confPct>=65?'var(--green)':confPct>=45?'var(--amber)':'var(--red)'}">${confPct}%</div>
+        <div style="font-family:var(--mono);font-size:7px;color:var(--text3)">CONFLUENCE</div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px;font-family:var(--mono)">
+      <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Trade Levels</div>
+      <div class="stat-row"><span class="stat-key">Entry Price</span><span class="stat-val v-amber">${s.cmp.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">Target (2.5\u00d7ATR)</span><span class="stat-val v-green">${s.tp.toFixed(2)} &mdash; +${Math.abs(s.tp-s.cmp).toFixed(1)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">Stop Loss (1.5\u00d7ATR)</span><span class="stat-val v-red">${s.sl.toFixed(2)} &mdash; -${Math.abs(s.sl-s.cmp).toFixed(1)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">R:R Ratio</span><span class="stat-val v-blue">${s.rr}:1</span></div>
+      <div class="stat-row"><span class="stat-key">ATR</span><span class="stat-val">${s.atr.toFixed(1)} pts</span></div>
+      <div class="stat-row"><span class="stat-key">Outcome</span><span class="stat-val ${s.outcome==='win'?'v-green':s.outcome==='loss'?'v-red':'v-dim'}">${s.outcome.toUpperCase()} ${s.pnlPts!==null?(s.pnlPts>=0?'+':'')+s.pnlPts.toFixed(1)+' pts':''} ${s.bars?'('+s.bars+' days)':''}</span></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;font-family:var(--mono)">
+      <div style="font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Indicators at Entry</div>
+      <div class="stat-row"><span class="stat-key">SMI</span><span class="stat-val" style="color:${s.smi<-40?'var(--green)':s.smi>40?'var(--red)':'var(--text2)'}">${s.smi} (Signal: ${s.smiSig})</span></div>
+      <div class="stat-row"><span class="stat-key">RSI(14)</span><span class="stat-val" style="color:${s.rsi<40?'var(--green)':s.rsi>60?'var(--red)':'var(--text2)'}">${s.rsi}</span></div>
+      <div class="stat-row"><span class="stat-key">Band Zone</span><span class="stat-val v-amber">${s.bandZone.replace(/_/g,' ').toUpperCase()}</span></div>
+      <div class="stat-row"><span class="stat-key">VWAP</span><span class="stat-val" style="color:${vwapVal?s.cmp>vwapVal?'var(--green)':'var(--red)':'var(--text2)'}">${vwapVal?(s.cmp>vwapVal?'ABOVE ':'BELOW ')+vwapVal.toFixed(2):'No volume data'}</span></div>
+      ${vpI?`<div class="stat-row"><span class="stat-key">POC</span><span class="stat-val" style="color:var(--teal)">${vpI.poc.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="stat-key">VAH / VAL</span><span class="stat-val v-dim">${vpI.vah.toFixed(2)} / ${vpI.val.toFixed(2)}</span></div>`:''}
+    </div>
+    <div style="margin-top:10px;background:${isBuy?'var(--green-g)':'var(--red-g)'};border:1px solid ${isBuy?'rgba(0,212,170,.3)':'rgba(255,64,96,.3)'};border-radius:8px;padding:10px;font-family:var(--mono);font-size:9px;color:${isBuy?'var(--green)':'var(--red)'}">
+      <strong>\u26a1 TRADE PLAN:</strong> ${isBuy?'LONG':'SHORT'} Nifty Futures @ ${s.cmp.toFixed(0)}.
+      Target ${s.tp.toFixed(0)} (+${Math.abs(s.tp-s.cmp).toFixed(0)} pts). 
+      Stop ${s.sl.toFixed(0)} (-${Math.abs(s.sl-s.cmp).toFixed(0)} pts).
+      R:R ${s.rr}:1. ${s.bars?`Exited in ${s.bars} days.`:'Trade still open.'}
+    </div>`;
+  document.getElementById('sigDetail').classList.add('open');
+}
+function closeSigDetail(){document.getElementById('sigDetail').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNAL TABLE SORT + RENDER
+// ═══════════════════════════════════════════════════════════
+function sortSigs(col){
+  if(sigSortCol===col)sigSortDir*=-1;
+  else{sigSortCol=col;sigSortDir=-1;}
+  renderSignalTable();
+}
+function renderSignalTable(){
+  const filter=document.getElementById('sigFilter').value;
+  const minScore=parseInt(document.getElementById('scoreFilter').value)||0;
+  let sigs=allSignals.filter(s=>{
+    if(filter==='buy'&&!s.signal.startsWith('B'))return false;
+    if(filter==='sell'&&!s.signal.startsWith('S'))return false;
+    if(filter!=='all'&&filter!=='buy'&&filter!=='sell'&&s.signal!==filter)return false;
+    if(s.score<minScore)return false;
+    return true;
+  });
+  const keyMap={date:'date',signal:'signal',score:'score',cmp:'cmp',tp:'tp',sl:'sl',rr:'rr',atr:'atr',smi:'smi',outcome:'outcome'};
+  const k=keyMap[sigSortCol]||'score';
+  sigs=[...sigs].sort((a,b)=>{
+    const av=a[k],bv=b[k];
+    if(typeof av==='string')return av.localeCompare(bv)*sigSortDir;
+    return((av||0)-(bv||0))*sigSortDir;
+  });
+  document.getElementById('sigCount').textContent=sigs.length+' signals';
+  const tbody=document.getElementById('sigTableBody');
+  if(!sigs.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No signals match filters</td></tr>';return;}
+  tbody.innerHTML=sigs.map(s=>{
+    const isBuy=s.signal.startsWith('B');
+    const oc=s.outcome==='win'?'b-win':s.outcome==='loss'?'b-loss':'b-open';
+    const pp=s.pnlPts!==null?(s.pnlPts>=0?'+':'')+s.pnlPts.toFixed(1):'—';
+    const pc=s.pnlPts>0?'v-green':s.pnlPts<0?'v-red':'v-dim';
+    return `<tr onclick="showSigDetail(${s.idx})" style="cursor:pointer">
+      <td>${s.date}</td>
+      <td><span class="badge ${isBuy?'b-buy':'b-sell'}">${s.signal}</span></td>
+      <td style="color:${s.score>=65?'var(--green)':s.score>=45?'var(--amber)':'var(--red)'};font-weight:700">${s.score}</td>
+      <td style="font-family:var(--mono)">${s.cmp.toFixed(2)}</td>
+      <td class="v-green" style="font-family:var(--mono)">${s.tp.toFixed(2)}</td>
+      <td class="v-red" style="font-family:var(--mono)">${s.sl.toFixed(2)}</td>
+      <td class="v-amber">${s.rr}</td>
+      <td>${s.atr.toFixed(1)}</td>
+      <td style="font-size:8px;color:var(--text2)">${s.bandZone.replace(/_/g,' ')}</td>
+      <td style="color:${s.smi<-40?'var(--green)':s.smi>40?'var(--red)':'var(--text2)'}">${s.smi}</td>
+      <td><span class="badge ${oc}">${s.outcome.toUpperCase()}</span> <span class="${pc}">${pp}</span></td>
+      <td><button onclick="event.stopPropagation();showSigDetail(${s.idx})" style="background:var(--blue-g);border:1px solid rgba(77,124,254,.3);color:var(--blue);border-radius:3px;padding:2px 7px;font-family:var(--mono);font-size:8px;cursor:pointer">Detail</button></td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
